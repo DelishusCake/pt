@@ -74,6 +74,7 @@ inline v3 V3(f32 x, f32 y, f32 z)
 }
 inline v3  v3_add(v3 a, v3 b)		{ return V3(a.x+b.x, a.y+b.y, a.z+b.z); };
 inline v3  v3_sub(v3 a, v3 b)  		{ return V3(a.x-b.x, a.y-b.y, a.z-b.z); };
+inline v3  v3_scale(v3 v, f32 s)	{ return V3(v.x*s, v.y*s, v.z*s); };
 inline f32 v3_dot(v3 a, v3 b)		{ return a.x*b.x + a.y*b.y + a.z*b.z; };
 inline v3  v3_cross(v3 a, v3 b)
 {
@@ -191,7 +192,7 @@ inline ray_t ray(v3 origin, v3 direction)
 };
 inline v3 ray_point(ray_t ray, f32 t)
 {
-	return v3_add(ray.origin + v3_scale(ray.direction, t));
+	return v3_add(ray.origin, v3_scale(ray.direction, t));
 };
 
 #endif
