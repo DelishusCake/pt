@@ -8,6 +8,7 @@ void image_alloc(image_t *image, u32 width, u32 height)
 	u8 *pixels = malloc(size);
 	assert(pixels != NULL);
 
+	image->bpp = bpp;
 	image->width = width;
 	image->height = height;
 	image->stride = width*bpp;
@@ -20,8 +21,7 @@ void image_free(image_t *image)
 
 void image_save(const image_t *image, const char *file_name)
 {
-	const size_t bpp = 4;
 	stbi_write_png(file_name,
-		image->width, image->height, bpp,
+		image->width, image->height, image->bpp,
 		image->pixels, image->stride);
 };

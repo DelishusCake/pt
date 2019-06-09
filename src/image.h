@@ -7,6 +7,7 @@
 
 typedef struct 
 {
+	u32 bpp;
 	u32 width;
 	u32 height;
 	u32 stride;

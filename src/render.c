@@ -79,3 +79,47 @@ ray_t camera_ray(const camera_t *camera, f32 u, f32 v)
 	ray.direction = v3_add(camera->f, v3_add(v3_scale(camera->h, u), v3_scale(camera->v, v)));
 	return ray;
 }
+
+void render(const world_t *world, 
+	const camera_t *camera, i32 spp,
+	image_t *image, rect_t area)
+{
+	const f32 min_t = 0.f;
+	const f32 max_t = FLT_MAX;
+
+	u8 *row = (image->pixels + 
+		(area.x*image->bpp) + 
+		(area.y*image->stride));
+	for (u32 j = area.y; j < (area.y+area.h); j++)
+	{
+		u32 *pixel = (u32*) row;
+		for (u32 i = area.x; i < (area.x+area.w); i++)
+		{
+			v3 color = V3(0.f, 0.f, 0.f);
+			for (u32 s = 0; s < spp; s++)
+			{
+				const f32 u = (((f32) i + f32_rand()) / (f32) image->width);
+				const f32 v = (((f32) j + f32_rand()) / (f32) image->height);
+
+				ray_t ray = camera_ray(camera, u, v);
+
+				v3 sample = V3(0.f, 0.f, 0.f);
+
+				hit_t hit;
+				hit.t = INFINITY;
+				if (world_hit(world, ray, min_t, max_t, &hit))
+				{
+					sample = v3_scale(v3_add(hit.normal, V3(1.f, 1.f, 1.f)), 0.5f);
+				}
+				color = v3_add(color, sample);
+			}
+			color = v3_scale(color, (1.f / (f32) spp));
+
+			const u8 r = (u8) (color.r * 255.99f);
+			const u8 g = (u8) (color.g * 255.99f);
+			const u8 b = (u8) (color.b * 255.99f);
+			*pixel++ = (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
+		}
+		row += image->stride;
+	};
+};

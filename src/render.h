@@ -2,7 +2,10 @@
 #define RENDER_H
 
 #include "core.h"
+#include "util.h"
 #include "geom.h"
+
+#include "image.h"
 
 typedef struct
 {
@@ -39,5 +42,14 @@ camera_t look_at(
 	v3 position, v3 at, v3 up, 
 	f32 fov, f32 aspect_ratio);
 ray_t camera_ray(const camera_t *camera, f32 u, f32 v);
+
+typedef struct
+{
+	i32 x, y, w, h;
+} rect_t;
+
+void render(const world_t *world, 
+	const camera_t *camera, i32 spp,
+	image_t *image, rect_t area);
 
 #endif
