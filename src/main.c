@@ -50,15 +50,13 @@ typedef struct
 static bool sphere_hit(const sphere_t *sphere, ray_t ray, 
 	f32 min_t, f32 max_t, hit_t *hit)
 {
-	const f32 eps = 1e-8;
-
 	const v3 oc = v3_sub(ray.origin, sphere->center);
 	const f32 a = v3_dot(ray.direction, ray.direction);
 	const f32 b = v3_dot(ray.direction, oc);
 	const f32 c = v3_dot(oc, oc) - (sphere->radius*sphere->radius);
 	
 	const f32 det = b*b - a*c;
-	if (det >= eps)
+	if (det > 0.f)
 	{
 		const f32 t_0 = (-b - f32_sqrt(det)) / (a);
 		const f32 t_1 = (-b + f32_sqrt(det)) / (a);
@@ -89,8 +87,6 @@ typedef struct
 static const bool world_hit(const world_t *world, ray_t ray,
 	f32 min_t, f32 max_t, hit_t *hit)
 {
-	hit->t = INFINITY;
-
 	bool result = false;
 	for (u32 i = 0; i < world->sphere_count; i++)
 	{
@@ -104,10 +100,11 @@ static const bool world_hit(const world_t *world, ray_t ray,
 };
 const v3 render_sample(const world_t *world, ray_t ray)
 {
-	const f32 min_t = 0.f;
+	const f32 min_t = 1e-8;
 	const f32 max_t = FLT_MAX;
 
-	hit_t hit = {0};
+	hit_t hit;
+	hit.t = INFINITY;
 	if (world_hit(world, ray, min_t, max_t, &hit))
 	{
 		return v3_scale(v3_add(hit.normal, V3(1.f, 1.f, 1.f)), 0.5f);
@@ -162,78 +159,176 @@ static ray_t camera_ray(const camera_t *camera, f32 u, f32 v)
 typedef struct
 {
 	i32 w, h, spp;
+
 	camera_t camera;
 	world_t world;
 } scene_t;
 
-static void scene_parse_image(scene_t *scene, 
-	const char *code,
-	const jsmntok_t *tokens, i32 token_count, i32 *current_token)
+
+typedef struct
 {
-	const jsmntok_t *top = tokens + *current_token;
-	for (u32 i = 0; i < top->size; i++)
-	{
-		const jsmntok_t *name = (tokens + (*current_token + 1));
-		const jsmntok_t *value = (tokens + (*current_token + 2));
-		*current_token += 2;
+	const char *string;
+	
+	i32 token_count;
+	i32 current_token;
+	jsmntok_t tokens[256];
+} parser_t;
 
-		const size_t value_len = (value->end-value->start);
-		
-		char val_str[value_len+1];
-		memcpy(val_str, (code + value->start), value_len);
-		val_str[value_len] = '\0';
-
-		const char  *name_str = (code + name->start);
-		const size_t name_len = (name->end-name->start);
-
-		if (strncmp("width", name_str, name_len))  scene->w = atoi(val_str);
-		if (strncmp("height", name_str, name_len)) scene->h = atoi(val_str);
-		if (strncmp("spp", name_str, name_len))    scene->spp = atoi(val_str);
-	};
+static const jsmntok_t* parser_get(parser_t *parser)
+{
+	return parser->tokens + parser->current_token++;
 };
-static void scene_parse_camera(scene_t *scene, 
-	const char *code,
-	const jsmntok_t *tokens, i32 token_count, i32 *current_token)
+
+static bool parser_check_equals(const parser_t *parser, const jsmntok_t *token, const char *check)
 {
-	const jsmntok_t *top = tokens + *current_token;
-	#if 0
+	const char  *tok_str = (parser->string + token->start);
+	const size_t tok_len = (token->end-token->start);
+	return (strncmp(check, tok_str, tok_len) == 0);
+};
+static i32 parser_get_i32(const parser_t *parser, const jsmntok_t *token)
+{
+	assert(token->type == JSMN_PRIMITIVE);
+	const size_t len = (token->end-token->start);
+		
+	char str[len+1];
+	memcpy(str, (parser->string + token->start), len);
+	str[len] = '\0';
+
+	return atoi(str);
+};
+static f32 parser_get_f32(const parser_t *parser, const jsmntok_t *token)
+{
+	assert(token->type == JSMN_PRIMITIVE);
+	const size_t len = (token->end-token->start);
+		
+	char str[len+1];
+	memcpy(str, (parser->string + token->start), len);
+	str[len] = '\0';
+
+	return atof(str);
+};
+
+static v3 parser_get_v3(parser_t *parser, const jsmntok_t *token)
+{
+	assert(token->type == JSMN_ARRAY);
+	assert(token->size == 3);
+
+	v3 v;
+	v.x = parser_get_f32(parser, parser_get(parser));
+	v.y = parser_get_f32(parser, parser_get(parser));
+	v.z = parser_get_f32(parser, parser_get(parser));
+	return v;
+};
+
+static void scene_parse_image(scene_t *scene, parser_t *parser)
+{
+	const jsmntok_t *top = parser_get(parser);
+	assert(top->type == JSMN_OBJECT);
+
 	for (u32 i = 0; i < top->size; i++)
 	{
-		const jsmntok_t *name = (tokens + (*current_token + 1));
-		const jsmntok_t *value = (tokens + (*current_token + 2));
-		*current_token += 2;
+		const jsmntok_t *name = parser_get(parser);
+		const jsmntok_t *value = parser_get(parser);
 
-		const size_t value_len = (value->end-value->start);
-		
-		char val_str[value_len+1];
-		memcpy(val_str, (code + value->start), value_len);
-		val_str[value_len] = '\0';
-
-		const char  *name_str = (code + name->start);
-		const size_t name_len = (name->end-name->start);
+		if (parser_check_equals(parser, name, "width"))
+			scene->w = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "height"))
+			scene->h = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "spp"))
+			scene->spp = parser_get_i32(parser, value);
 	};
+
+	#if 0
+	printf("IMAGE: %dx%d %d SPP\n", scene->w, scene->h, scene->spp);
 	#endif
 };
-static void scene_parse(scene_t *scene, 
-	const char *code,
-	const jsmntok_t *tokens, i32 token_count)
+static void scene_parse_camera(scene_t *scene, parser_t *parser)
 {
-	i32 current_token = 0;
-	assert(tokens[current_token++].type == JSMN_OBJECT);
+	f32 fov = 0.f;
+	f32 aspect_ratio = 0.f;
+	v3 up = V3(0.f, 0.f, 0.f);
+	v3 at = V3(0.f, 0.f, 0.f);
+	v3 position = V3(0.f, 0.f, 0.f);
 
-	while (current_token < token_count)
+	const jsmntok_t *top = parser_get(parser);
+	assert(top->type == JSMN_OBJECT);
+
+	for (u32 i = 0; i < top->size; i++)
 	{
-		const jsmntok_t *token = tokens + current_token++;
-		
-		const char  *str = (code + token->start);
-		const size_t len = (token->end-token->start);
-		if (strncmp("image", str, len) == 0)
-			scene_parse_image(scene, code, tokens, token_count, &current_token);
-		if (strncmp("camera", str, len) == 0)
-			scene_parse_camera(scene, code, tokens, token_count, &current_token);
+		const jsmntok_t *name = parser_get(parser);
+		const jsmntok_t *value = parser_get(parser);
+
+		if (parser_check_equals(parser, name, "fov"))
+			fov = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "aspect_ratio"))
+			aspect_ratio = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "position"))
+			position = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "up"))
+			up = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "at"))
+			at = parser_get_v3(parser, value);
+	};
+
+	#if 0
+	printf("FOV: %f\n", fov);
+	printf("ASP: %f\n", aspect_ratio);
+	printf("POS: %f, %f, %f\n", position.x, position.y, position.z);
+	printf("AT : %f, %f, %f\n", at.x, at.y, at.z);
+	printf("UP : %f, %f, %f\n", up.x, up.y, up.z);
+	#endif
+
+	scene->camera = look_at(
+		position, at, up,
+		fov, aspect_ratio);
+};
+static void scene_parse_sphere(scene_t *scene, parser_t *parser)
+{
+	f32 radius = 0.f;
+	v3 center = V3(0.f, 0.f, 0.f);
+
+	const jsmntok_t *top = parser_get(parser);
+	assert(top->type == JSMN_OBJECT);
+
+	for (u32 i = 0; i < top->size; i++)
+	{
+		const jsmntok_t *name = parser_get(parser);
+		const jsmntok_t *value = parser_get(parser);
+
+		if (parser_check_equals(parser, name, "center"))
+			center = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "radius"))
+			radius = parser_get_f32(parser, value);
+	};
+
+	#if 0
+	printf("RADIUS: %f\n", radius);
+	printf("CENTER: %f, %f, %f\n", center.x, center.y, center.z);
+	#endif
+
+	assert((scene->world.sphere_count + 1) < MAX_SPHERES);
+
+	const u32 index = scene->world.sphere_count++;
+	scene->world.spheres[index].radius = radius;
+	scene->world.spheres[index].center = center;
+};
+static void scene_parse(scene_t *scene, parser_t *parser)
+{
+	const jsmntok_t *top = parser_get(parser);
+	assert(top->type == JSMN_OBJECT);
+
+	for (u32 i = 0; i < top->size; i++)
+	{
+		const jsmntok_t *token = parser_get(parser);
+		if (parser_check_equals(parser, token, "image"))
+			scene_parse_image(scene, parser);
+		if (parser_check_equals(parser, token, "camera"))
+			scene_parse_camera(scene, parser);
+		if (parser_check_equals(parser, token, "sphere"))
+			scene_parse_sphere(scene, parser);
 	};
 };
-static scene_t* load_scene(const char *file_name)
+static scene_t* scene_load(const char *file_name)
 {
 	scene_t *scene = NULL;
 
@@ -244,20 +339,52 @@ static scene_t* load_scene(const char *file_name)
 		jsmn_parser parser;
 		jsmn_init(&parser);
 
-		jsmntok_t tokens[256];
-		i32 token_count = jsmn_parse(&parser, 
-			code, len, 
-			tokens, static_len(tokens));
-		if (token_count > 0)
+		parser_t p;
+		p.string = code;
+		p.current_token = 0;
+
+		p.token_count = jsmn_parse(&parser, 
+			p.string, len, 
+			p.tokens, static_len(p.tokens));
+		if (p.token_count > 0)
 		{
 			scene = malloc(sizeof(scene_t));
 			assert(scene != NULL);
 			memset(scene, 0, sizeof(scene_t));
 
-			scene_parse(scene, code, tokens, token_count);
+			scene_parse(scene, &p);
 		};
 	};
 	return scene;
+};
+static void scene_render(const scene_t *scene, image_t *image)
+{
+	image_alloc(image, scene->w, scene->h);
+
+	u8 *row = image->pixels;
+	for (u32 j = 0; j < image->height; j++)
+	{
+		u32 *pixel = (u32*) row;
+		for (u32 i = 0; i < image->width; i++)
+		{
+			v3 color = V3(0.f, 0.f, 0.f);
+			for (u32 s = 0; s < scene->spp; s++)
+			{
+				const f32 u = (((f32) i + f32_rand()) / (f32) image->width);
+				const f32 v = (((f32) j + f32_rand()) / (f32) image->height);
+
+				ray_t ray = camera_ray(&scene->camera, u, v);
+				color = v3_add(color, render_sample(&scene->world, ray));
+			}
+			color = v3_scale(color, (1.f / (f32) scene->spp));
+
+			const u8 r = (u8) (color.r * 255.99f);
+			const u8 g = (u8) (color.g * 255.99f);
+			const u8 b = (u8) (color.b * 255.99f);
+			*pixel++ = (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
+		}
+		row += image->stride;
+	};
 };
 
 int main(int argc, const char *argv[])
@@ -268,68 +395,13 @@ int main(int argc, const char *argv[])
 		return 0;
 	}
 
-	scene_t *scene = load_scene(argv[1]);
+	scene_t *scene = scene_load(argv[1]);
 	if (scene)
 	{
-		printf("Image: %dx%d %dspp\n", scene->w, scene->h, scene->spp);
-
-		#if 0
 		image_t image;
-		image_alloc(&image, scene->w, scene->h);
-		
-		u8 *row = image.pixels;
-		for (u32 j = 0; j < image.height; j++)
-		{
-			u32 *pixel = (u32*) row;
-			for (u32 i = 0; i < image.width; i++)
-			{
-				v3 color = V3(0.f, 0.f, 0.f);
-				for (u32 s = 0; s < scene->spp; s++)
-				{
-					const f32 u = (((f32) i + f32_rand()) / (f32) image.width);
-					const f32 v = (((f32) j + f32_rand()) / (f32) image.height);
-
-					ray_t ray = camera_ray(&scene->camera, u, v);
-					color = v3_add(color, render_sample(&scene->world, ray));
-				}
-				color = v3_scale(color, (1.f / (f32) scene->spp));
-
-				const u8 r = (u8) (color.r * 255.99f);
-				const u8 g = (u8) (color.g * 255.99f);
-				const u8 b = (u8) (color.b * 255.99f);
-				*pixel++ = (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
-			}
-			row += image.stride;
-		};
+		scene_render(scene, &image);
 		image_save(&image, "image.png");
-		#endif
 		free(scene);
 	}
 	return 0;
-
-	#if 0
-	const f32 fov = 75.f;
-	const f32 aspect_ratio = ((f32) w / (f32) h);
-
-	camera_t camera = look_at(
-		V3(0.f, 0.f, 0.f),
-		V3(0.f, 0.f,-1.f),
-		V3(0.f, 1.f, 0.f),
-		fov, aspect_ratio);
-
-	world_t *world = malloc(sizeof(world_t));
-	assert(world != NULL);
-	memset(world, 0, sizeof(world_t));
-
-	world->spheres[0].center = V3(0.f, 0.f, -1.f);
-	world->spheres[0].radius = 0.5f;
-
-	world->spheres[1].center = V3(0.f, 1000.5f, -1.f);
-	world->spheres[1].radius = 1000.f;
-
-	world->sphere_count = 2;
-
-	
-	return 0;
-	#endif
 }
