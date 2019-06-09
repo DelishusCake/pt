@@ -24,7 +24,8 @@ int main(int argc, const char *argv[])
 		render(
 			&scene->world, 
 			&scene->camera,
-			scene->spp, 
+			scene->samples, 
+			scene->bounces, 
 			&image, area);
 
 		image_save(&image, scene->output);

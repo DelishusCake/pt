@@ -70,4 +70,6 @@ inline f32 f32_cos(f32 v)         { return cosf(v); }
 inline f32 f32_tan(f32 v)         { return tanf(v); }
 inline f32 f32_atan(f32 v)        { return atanf(v); }
 
+inline f32 f32_saturate(f32 v)    { return clamp(v, 0.f, 1.f); }
+
 #endif

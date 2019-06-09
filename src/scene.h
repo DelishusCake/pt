@@ -8,8 +8,10 @@
 
 typedef struct
 {
-	i32 w, h, spp;
+	i32 w, h;
 	char output[512];
+	
+	i32 samples, bounces;
 
 	world_t world;
 	camera_t camera;

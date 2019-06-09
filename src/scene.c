@@ -79,14 +79,18 @@ static void scene_parse_image(scene_t *scene, parser_t *parser)
 		const jsmntok_t *name = parser_get(parser);
 		const jsmntok_t *value = parser_get(parser);
 
-		if (parser_check_equals(parser, name, "width"))  scene->w = parser_get_i32(parser, value);
-		if (parser_check_equals(parser, name, "height")) scene->h = parser_get_i32(parser, value);
-		if (parser_check_equals(parser, name, "spp"))    scene->spp = parser_get_i32(parser, value);
-		if (parser_check_equals(parser, name, "name"))   parser_get_str(parser, value, scene->output, static_len(scene->output));
+		if (parser_check_equals(parser, name, "name"))    parser_get_str(parser, value, scene->output, static_len(scene->output));
+		if (parser_check_equals(parser, name, "width"))   scene->w = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "height"))  scene->h = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "samples")) scene->samples = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "bounces")) scene->bounces = parser_get_i32(parser, value);
 	};
 
-	#if 0
-	printf("IMAGE: \"%s\" %dx%d %d SPP\n", scene->output, scene->w, scene->h, scene->spp);
+	#if 1
+	printf("IMAGE: \"%s\" %dx%d %d samples %d bounces\n", 
+	scene->output, 
+	scene->w, scene->h, 
+	scene->samples, scene->bounces);
 	#endif
 };
 static void scene_parse_camera(scene_t *scene, parser_t *parser)

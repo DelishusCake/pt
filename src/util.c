@@ -13,7 +13,7 @@ f32 f32_rand()
 {
 	return (f32) xorshift32() / (f32) UINT32_MAX;
 }
-v3 v2_unit_rand()
+v3 v3_unit_rand()
 {
 	v3 p;
 	do 

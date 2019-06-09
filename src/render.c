@@ -87,21 +87,43 @@ static ray_t camera_ray(const camera_t *camera, f32 u, f32 v)
 	return ray;
 }
 
-static inline u32 rgb(v3 color)
+static inline u32 srgb(v3 color)
 {
-	const u8 r = (u8) (color.r * 255.99f);
-	const u8 g = (u8) (color.g * 255.99f);
-	const u8 b = (u8) (color.b * 255.99f);
+	const f32 exp = (1.f/2.2f);
+	const u8 r = (u32)(f32_pow(f32_saturate(color.r), exp) * 255.f + 0.5f) & 0xFF;
+	const u8 g = (u32)(f32_pow(f32_saturate(color.g), exp) * 255.f + 0.5f) & 0xFF;
+	const u8 b = (u32)(f32_pow(f32_saturate(color.b), exp) * 255.f + 0.5f) & 0xFF;
 	return (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
 };
 
-void render(const world_t *world, 
-	const camera_t *camera, i32 spp,
-	image_t *image, rect_t area)
+static v3 sample(const world_t *world, ray_t ray)
 {
-	const f32 min_t = 0.f;
+	const f32 min_t = 0.001f;
 	const f32 max_t = FLT_MAX;
 
+	hit_t hit;
+	hit.t = INFINITY;
+	if (world_hit(world, ray, min_t, max_t, &hit))
+	{
+		#if 0
+		return v3_scale(v3_add(hit.normal, V3(1.f, 1.f, 1.f)), 0.5f);
+		#else
+		v3 target = v3_add(v3_add(hit.position, hit.normal), v3_unit_rand());
+
+		ray_t new_ray;
+		new_ray.origin = hit.position;
+		new_ray.direction = v3_norm(v3_sub(target, hit.position));
+
+		return v3_scale(sample(world, new_ray), 0.5f);
+		#endif
+	}
+	return V3(0.6f, 0.6f, 0.6f);
+};
+void render(const world_t *world, 
+	const camera_t *camera, 
+	i32 samples, i32 bounces,
+	image_t *image, rect_t area)
+{
 	u8 *row = (image->pixels + 
 		(area.x*image->bpp) + 
 		(area.y*image->stride));
@@ -111,26 +133,18 @@ void render(const world_t *world,
 		for (u32 i = area.x; i < (area.x+area.w); i++)
 		{
 			v3 color = V3(0.f, 0.f, 0.f);
-			for (u32 s = 0; s < spp; s++)
+			for (u32 s = 0; s < samples; s++)
 			{
 				const f32 u = (((f32) i + f32_rand()) / (f32) image->width);
 				const f32 v = (((f32) j + f32_rand()) / (f32) image->height);
 
 				ray_t ray = camera_ray(camera, u, v);
 
-				v3 sample = V3(0.f, 0.f, 0.f);
-
-				hit_t hit;
-				hit.t = INFINITY;
-				if (world_hit(world, ray, min_t, max_t, &hit))
-				{
-					sample = v3_scale(v3_add(hit.normal, V3(1.f, 1.f, 1.f)), 0.5f);
-				}
-				color = v3_add(color, sample);
+				color = v3_add(color, sample(world, ray));
 			}
-			color = v3_scale(color, (1.f / (f32) spp));
+			color = v3_scale(color, (1.f / (f32) samples));
 
-			*pixel++ = rgb(color);
+			*pixel++ = srgb(color);
 		}
 		row += image->stride;
 	};

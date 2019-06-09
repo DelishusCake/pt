@@ -37,7 +37,8 @@ typedef struct
 } rect_t;
 
 void render(const world_t *world, 
-	const camera_t *camera, i32 spp,
+	const camera_t *camera, 
+	i32 samples, i32 bounces,
 	image_t *image, rect_t area);
 
 #endif
