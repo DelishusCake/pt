@@ -1,5 +1,12 @@
 #include "render.h"
 
+typedef struct
+{
+	f32 t;
+	v3 normal;
+	v3 position;
+} hit_t;
+
 static bool sphere_hit(const sphere_t *sphere, ray_t ray, 
 	f32 min_t, f32 max_t, hit_t *hit)
 {
@@ -28,7 +35,7 @@ static bool sphere_hit(const sphere_t *sphere, ray_t ray,
 	}
 	return false;
 };
-bool world_hit(const world_t *world, ray_t ray,
+static bool world_hit(const world_t *world, ray_t ray,
 	f32 min_t, f32 max_t, hit_t *hit)
 {
 	bool result = false;
@@ -72,13 +79,21 @@ camera_t look_at(
 	camera.v = v;
 	return camera;
 };
-ray_t camera_ray(const camera_t *camera, f32 u, f32 v)
+static ray_t camera_ray(const camera_t *camera, f32 u, f32 v)
 {
 	ray_t ray;
 	ray.origin = camera->position;
 	ray.direction = v3_add(camera->f, v3_add(v3_scale(camera->h, u), v3_scale(camera->v, v)));
 	return ray;
 }
+
+static inline u32 rgb(v3 color)
+{
+	const u8 r = (u8) (color.r * 255.99f);
+	const u8 g = (u8) (color.g * 255.99f);
+	const u8 b = (u8) (color.b * 255.99f);
+	return (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
+};
 
 void render(const world_t *world, 
 	const camera_t *camera, i32 spp,
@@ -115,10 +130,7 @@ void render(const world_t *world,
 			}
 			color = v3_scale(color, (1.f / (f32) spp));
 
-			const u8 r = (u8) (color.r * 255.99f);
-			const u8 g = (u8) (color.g * 255.99f);
-			const u8 b = (u8) (color.b * 255.99f);
-			*pixel++ = (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
+			*pixel++ = rgb(color);
 		}
 		row += image->stride;
 	};
