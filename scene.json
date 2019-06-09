@@ -1,18 +1,20 @@
 {
 	"image":
 	{
-		"samples": 4, 
-		"bounces": 32,
-
 		"width": 960,
 		"height": 540,
 		"name": "image.png",
 	},
 
+	"render":
+	{
+		"samples": 4, 
+		"bounces": 32,
+	},
+
 	"camera": 
 	{
 		"fov": 75.0,
-		"aspect_ratio": 1.77777778,
 		"up": [0.0, 1.0, 0.0],
 		"at": [0.0, 0.0, -1.0],
 		"position": [0.0, 0.0, 0.0],

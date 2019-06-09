@@ -69,6 +69,25 @@ static v3 parser_get_v3(parser_t *parser, const jsmntok_t *token)
 	return v;
 };
 
+static void scene_parse_render(scene_t *scene, parser_t *parser)
+{
+	const jsmntok_t *top = parser_get(parser);
+	assert(top->type == JSMN_OBJECT);
+
+	for (u32 i = 0; i < top->size; i++)
+	{
+		const jsmntok_t *name = parser_get(parser);
+		const jsmntok_t *value = parser_get(parser);
+
+		if (parser_check_equals(parser, name, "samples")) scene->samples = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "bounces")) scene->bounces = parser_get_i32(parser, value);
+	};
+
+	#if 1
+	printf("RENDER: %d samples %d bounces\n", 
+		scene->samples, scene->bounces);
+	#endif
+}
 static void scene_parse_image(scene_t *scene, parser_t *parser)
 {
 	const jsmntok_t *top = parser_get(parser);
@@ -82,21 +101,21 @@ static void scene_parse_image(scene_t *scene, parser_t *parser)
 		if (parser_check_equals(parser, name, "name"))    parser_get_str(parser, value, scene->output, static_len(scene->output));
 		if (parser_check_equals(parser, name, "width"))   scene->w = parser_get_i32(parser, value);
 		if (parser_check_equals(parser, name, "height"))  scene->h = parser_get_i32(parser, value);
-		if (parser_check_equals(parser, name, "samples")) scene->samples = parser_get_i32(parser, value);
-		if (parser_check_equals(parser, name, "bounces")) scene->bounces = parser_get_i32(parser, value);
 	};
 
 	#if 1
-	printf("IMAGE: \"%s\" %dx%d %d samples %d bounces\n", 
-	scene->output, 
-	scene->w, scene->h, 
-	scene->samples, scene->bounces);
+	printf("IMAGE: \"%s\" %dx%d\n", 
+		scene->output, 
+		scene->w, scene->h);
 	#endif
 };
 static void scene_parse_camera(scene_t *scene, parser_t *parser)
 {
+	assert((scene->w != 0) && (scene->h != 0.f));
+
+	const f32 aspect_ratio = ((f32) scene->w / (f32) scene->h);
+	
 	f32 fov = 0.f;
-	f32 aspect_ratio = 0.f;
 	v3 up = V3(0.f, 0.f, 0.f);
 	v3 at = V3(0.f, 0.f, 0.f);
 	v3 position = V3(0.f, 0.f, 0.f);
@@ -109,16 +128,10 @@ static void scene_parse_camera(scene_t *scene, parser_t *parser)
 		const jsmntok_t *name = parser_get(parser);
 		const jsmntok_t *value = parser_get(parser);
 
-		if (parser_check_equals(parser, name, "fov"))
-			fov = parser_get_f32(parser, value);
-		if (parser_check_equals(parser, name, "aspect_ratio"))
-			aspect_ratio = parser_get_f32(parser, value);
-		if (parser_check_equals(parser, name, "position"))
-			position = parser_get_v3(parser, value);
-		if (parser_check_equals(parser, name, "up"))
-			up = parser_get_v3(parser, value);
-		if (parser_check_equals(parser, name, "at"))
-			at = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "fov"))		fov = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "position"))	position = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "up"))		up = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "at"))		at = parser_get_v3(parser, value);
 	};
 
 	#if 0
@@ -146,10 +159,8 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 		const jsmntok_t *name = parser_get(parser);
 		const jsmntok_t *value = parser_get(parser);
 
-		if (parser_check_equals(parser, name, "center"))
-			center = parser_get_v3(parser, value);
-		if (parser_check_equals(parser, name, "radius"))
-			radius = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "center"))	center = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "radius"))	radius = parser_get_f32(parser, value);
 	};
 
 	#if 0
@@ -171,12 +182,10 @@ static void scene_parse(scene_t *scene, parser_t *parser)
 	for (u32 i = 0; i < top->size; i++)
 	{
 		const jsmntok_t *token = parser_get(parser);
-		if (parser_check_equals(parser, token, "image"))
-			scene_parse_image(scene, parser);
-		if (parser_check_equals(parser, token, "camera"))
-			scene_parse_camera(scene, parser);
-		if (parser_check_equals(parser, token, "sphere"))
-			scene_parse_sphere(scene, parser);
+		if (parser_check_equals(parser, token, "render"))	scene_parse_render(scene, parser);
+		if (parser_check_equals(parser, token, "image"))	scene_parse_image(scene, parser);
+		if (parser_check_equals(parser, token, "camera"))	scene_parse_camera(scene, parser);
+		if (parser_check_equals(parser, token, "sphere"))	scene_parse_sphere(scene, parser);
 	};
 };
 scene_t* scene_load(const char *file_name)

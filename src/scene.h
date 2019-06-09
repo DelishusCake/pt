@@ -8,11 +8,12 @@
 
 typedef struct
 {
+	// Image 
 	i32 w, h;
 	char output[512];
-	
+	// Render 
 	i32 samples, bounces;
-
+	// World
 	world_t world;
 	camera_t camera;
 } scene_t;
