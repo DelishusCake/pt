@@ -11,8 +11,11 @@
 
 typedef struct
 {
+	// Geometry data
 	v3  center;
 	f32 radius;
+	// Material data
+	v3  albedo;
 } sphere_t;
 typedef struct
 {

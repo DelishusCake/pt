@@ -8,7 +8,7 @@
 
 	"render":
 	{
-		"samples": 4, 
+		"samples": 64, 
 		"bounces": 32,
 	},
 
@@ -24,11 +24,13 @@
 	{
 		"center": [0.0, 0.0, -1.0],
 		"radius": 0.5,
+		"albedo": [0.99, 0.2, 0.1],
 	},
 
 	"sphere":
 	{
 		"center": [0.0, 100.5, -1.0],
 		"radius": 100.0,
+		"albedo": [0.0, 1.0, 0.0],
 	},
 }

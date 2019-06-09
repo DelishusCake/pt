@@ -5,6 +5,8 @@ typedef struct
 	f32 t;
 	v3 normal;
 	v3 position;
+
+	v3 albedo;
 } hit_t;
 
 static bool sphere_hit(const sphere_t *sphere, ray_t ray, 
@@ -30,6 +32,7 @@ static bool sphere_hit(const sphere_t *sphere, ray_t ray,
 			hit->t = t;
 			hit->normal = normal;
 			hit->position = position;
+			hit->albedo = sphere->albedo;
 			return true;
 		}
 	}
@@ -87,16 +90,19 @@ static ray_t camera_ray(const camera_t *camera, f32 u, f32 v)
 	return ray;
 }
 
-static inline u32 srgb(v3 color)
+static bool scatter_lambertian(ray_t ray, const hit_t *hit, 
+	v3 *attenuation, ray_t *new_ray)
 {
-	const f32 exp = (1.f/2.2f);
-	const u8 r = (u32)(f32_pow(f32_saturate(color.r), exp) * 255.f + 0.5f) & 0xFF;
-	const u8 g = (u32)(f32_pow(f32_saturate(color.g), exp) * 255.f + 0.5f) & 0xFF;
-	const u8 b = (u32)(f32_pow(f32_saturate(color.b), exp) * 255.f + 0.5f) & 0xFF;
-	return (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
+	v3 target = v3_add(v3_add(hit->position, hit->normal), v3_unit_rand());
+
+	new_ray->origin = hit->position;
+	new_ray->direction = v3_norm(v3_sub(target, hit->position));
+
+	*attenuation = hit->albedo;
+	return true;
 };
 
-static v3 sample(const world_t *world, ray_t ray)
+static v3 sample(const world_t *world, ray_t ray, i32 max_depth, i32 depth)
 {
 	const f32 min_t = 0.001f;
 	const f32 max_t = FLT_MAX;
@@ -104,20 +110,26 @@ static v3 sample(const world_t *world, ray_t ray)
 	hit_t hit;
 	hit.t = INFINITY;
 	if (world_hit(world, ray, min_t, max_t, &hit))
-	{
-		#if 0
-		return v3_scale(v3_add(hit.normal, V3(1.f, 1.f, 1.f)), 0.5f);
-		#else
-		v3 target = v3_add(v3_add(hit.position, hit.normal), v3_unit_rand());
-
+	{	
 		ray_t new_ray;
-		new_ray.origin = hit.position;
-		new_ray.direction = v3_norm(v3_sub(target, hit.position));
-
-		return v3_scale(sample(world, new_ray), 0.5f);
-		#endif
+		v3 attenuation;
+		if ((depth < max_depth) && 
+			scatter_lambertian(ray, &hit, &attenuation, &new_ray))
+		{
+			return v3_mul(attenuation, sample(world, new_ray, max_depth, (depth+1)));
+		}
+		return V3(0.f, 0.f, 0.f);
 	}
-	return V3(0.6f, 0.6f, 0.6f);
+	return V3(0.2f, 0.3f, 0.9f);
+};
+
+static inline u32 srgb(v3 color)
+{
+	const f32 exp = (1.f/2.2f);
+	const u8 r = (u32)(f32_pow(f32_saturate(color.r), exp) * 255.f + 0.5f) & 0xFF;
+	const u8 g = (u32)(f32_pow(f32_saturate(color.g), exp) * 255.f + 0.5f) & 0xFF;
+	const u8 b = (u32)(f32_pow(f32_saturate(color.b), exp) * 255.f + 0.5f) & 0xFF;
+	return (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
 };
 void render(const world_t *world, 
 	const camera_t *camera, 
@@ -140,7 +152,7 @@ void render(const world_t *world,
 
 				ray_t ray = camera_ray(camera, u, v);
 
-				color = v3_add(color, sample(world, ray));
+				color = v3_add(color, sample(world, ray, bounces, 0));
 			}
 			color = v3_scale(color, (1.f / (f32) samples));
 

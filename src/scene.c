@@ -150,6 +150,7 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 {
 	f32 radius = 0.f;
 	v3 center = V3(0.f, 0.f, 0.f);
+	v3 albedo = V3(0.f, 0.f, 0.f);
 
 	const jsmntok_t *top = parser_get(parser);
 	assert(top->type == JSMN_OBJECT);
@@ -161,11 +162,13 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 
 		if (parser_check_equals(parser, name, "center"))	center = parser_get_v3(parser, value);
 		if (parser_check_equals(parser, name, "radius"))	radius = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "albedo"))	albedo = parser_get_v3(parser, value);
 	};
 
 	#if 0
 	printf("RADIUS: %f\n", radius);
 	printf("CENTER: %f, %f, %f\n", center.x, center.y, center.z);
+	printf("ALBEDO: %f, %f, %f\n", albedo.x, albedo.y, albedo.z);
 	#endif
 
 	assert((scene->world.sphere_count + 1) < MAX_SPHERES);
@@ -173,6 +176,7 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 	const u32 index = scene->world.sphere_count++;
 	scene->world.spheres[index].radius = radius;
 	scene->world.spheres[index].center = center;
+	scene->world.spheres[index].albedo = albedo;
 };
 static void scene_parse(scene_t *scene, parser_t *parser)
 {
