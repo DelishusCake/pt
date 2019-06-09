@@ -85,6 +85,7 @@ inline v3  v3_cross(v3 a, v3 b)
 	return r;
 };
 inline f32 v3_len2(v3 v)			{ return v3_dot(v, v); };
+inline f32 v3_len(v3 v)				{ return f32_sqrt(v3_len2(v)); };
 inline v3  v3_norm(v3 v)
 {
 	const f32 l2 = v3_len2(v);

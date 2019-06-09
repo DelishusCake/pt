@@ -4,6 +4,12 @@
 #include <stdio.h>
 
 #include "core.h"
+#include "geom.h"
+
+// rand range [0.f, 1.f]
+f32 f32_rand();
+
+v3 v2_unit_rand();
 
 char* load_entire_file(const char *file_name, size_t *size);
 

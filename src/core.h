@@ -3,8 +3,8 @@
 
 #include <assert.h>
 
-#include <stdint.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
 
@@ -67,6 +67,7 @@ inline f32 f32_isqrt(f32 v)       { return (1.f / sqrtf(v)); };
 
 inline f32 f32_sin(f32 v)         { return sinf(v); }
 inline f32 f32_cos(f32 v)         { return cosf(v); }
+inline f32 f32_tan(f32 v)         { return tanf(v); }
 inline f32 f32_atan(f32 v)        { return atanf(v); }
 
 #endif
