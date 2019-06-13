@@ -74,14 +74,19 @@ static void scene_parse_render(scene_t *scene, parser_t *parser)
 	const jsmntok_t *top = parser_get(parser);
 	assert(top->type == JSMN_OBJECT);
 
+	v3 background = V3(0.f, 0.f, 0.f);
+
 	for (u32 i = 0; i < top->size; i++)
 	{
 		const jsmntok_t *name = parser_get(parser);
 		const jsmntok_t *value = parser_get(parser);
 
-		if (parser_check_equals(parser, name, "samples")) scene->samples = parser_get_i32(parser, value);
-		if (parser_check_equals(parser, name, "bounces")) scene->bounces = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "samples"))   scene->samples = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "bounces"))   scene->bounces = parser_get_i32(parser, value);
+		if (parser_check_equals(parser, name, "background")) background = parser_get_v3(parser, value);
 	};
+
+	scene->world.background = background;
 
 	#if 1
 	printf("RENDER: %d samples %d bounces\n", 
@@ -151,6 +156,7 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 	f32 radius = 0.f;
 	v3 center = V3(0.f, 0.f, 0.f);
 	v3 albedo = V3(0.f, 0.f, 0.f);
+	material_type_t material_type = MATERIAL_LAMBERTIAN;
 
 	const jsmntok_t *top = parser_get(parser);
 	assert(top->type == JSMN_OBJECT);
@@ -163,12 +169,18 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 		if (parser_check_equals(parser, name, "center"))	center = parser_get_v3(parser, value);
 		if (parser_check_equals(parser, name, "radius"))	radius = parser_get_f32(parser, value);
 		if (parser_check_equals(parser, name, "albedo"))	albedo = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "material_type"))
+		{
+			if (parser_check_equals(parser, value, "metal")) material_type = MATERIAL_METAL;
+			if (parser_check_equals(parser, value, "lambertian")) material_type = MATERIAL_LAMBERTIAN;
+		};
 	};
 
 	#if 0
 	printf("RADIUS: %f\n", radius);
 	printf("CENTER: %f, %f, %f\n", center.x, center.y, center.z);
 	printf("ALBEDO: %f, %f, %f\n", albedo.x, albedo.y, albedo.z);
+	printf("MATERIAL: %d\n", material_type);
 	#endif
 
 	assert((scene->world.sphere_count + 1) < MAX_SPHERES);
@@ -177,6 +189,7 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 	scene->world.spheres[index].radius = radius;
 	scene->world.spheres[index].center = center;
 	scene->world.spheres[index].albedo = albedo;
+	scene->world.spheres[index].material_type = material_type;
 };
 static void scene_parse(scene_t *scene, parser_t *parser)
 {

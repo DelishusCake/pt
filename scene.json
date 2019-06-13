@@ -8,9 +8,11 @@
 
 	"render":
 	{
-		"samples": 64, 
-		"bounces": 32,
+		"samples": 32, 
+		"bounces": 8,
+		"background": [ 1.0, 1.0, 1.0],
 	},
+
 
 	"camera": 
 	{
@@ -24,13 +26,25 @@
 	{
 		"center": [0.0, 0.0, -1.0],
 		"radius": 0.5,
+
 		"albedo": [0.99, 0.2, 0.1],
+		"material_type": "lambertian",
+	},
+	"sphere":
+	{
+		"center": [1.0, 0.0, -1.5],
+		"radius": 0.5,
+
+		"albedo": [0.89, 0.98, 0.99],
+		"material_type": "metal",
 	},
 
 	"sphere":
 	{
 		"center": [0.0, 100.5, -1.0],
 		"radius": 100.0,
-		"albedo": [0.0, 1.0, 0.0],
+
+		"albedo": [0.75, 0.75, 0.9],
+		"material_type": "lambertian",
 	},
 }

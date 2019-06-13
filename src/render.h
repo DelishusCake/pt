@@ -9,6 +9,11 @@
 
 #define MAX_SPHERES	256
 
+typedef enum
+{
+	MATERIAL_METAL,
+	MATERIAL_LAMBERTIAN,
+} material_type_t;
 typedef struct
 {
 	// Geometry data
@@ -16,9 +21,12 @@ typedef struct
 	f32 radius;
 	// Material data
 	v3  albedo;
+	material_type_t material_type;
 } sphere_t;
 typedef struct
 {
+	v3 background;
+
 	u32 sphere_count;
 	sphere_t spheres[MAX_SPHERES];
 } world_t;

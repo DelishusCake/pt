@@ -7,6 +7,7 @@ typedef struct
 	v3 position;
 
 	v3 albedo;
+	material_type_t material_type;
 } hit_t;
 
 static bool sphere_hit(const sphere_t *sphere, ray_t ray, 
@@ -33,6 +34,7 @@ static bool sphere_hit(const sphere_t *sphere, ray_t ray,
 			hit->normal = normal;
 			hit->position = position;
 			hit->albedo = sphere->albedo;
+			hit->material_type = sphere->material_type;
 			return true;
 		}
 	}
@@ -101,6 +103,29 @@ static bool scatter_lambertian(ray_t ray, const hit_t *hit,
 	*attenuation = hit->albedo;
 	return true;
 };
+static bool scatter_metal(ray_t ray, const hit_t *hit, 
+	v3 *attenuation, ray_t *new_ray)
+{
+	v3 reflected = v3_refl(ray.direction, hit->normal);
+
+	new_ray->origin = hit->position;
+	new_ray->direction = reflected;
+
+	*attenuation = hit->albedo;
+	return (v3_dot(reflected, hit->normal) > 0.f);
+};
+static bool scatter(ray_t ray, const hit_t *hit, 
+	v3 *attenuation, ray_t *new_ray)
+{
+	switch (hit->material_type)
+	{
+		case MATERIAL_LAMBERTIAN:
+			return scatter_lambertian(ray, hit, attenuation, new_ray);
+		case MATERIAL_METAL:
+			return scatter_metal(ray, hit, attenuation, new_ray);
+	}
+	return false;
+}
 
 static v3 sample(const world_t *world, ray_t ray, i32 max_depth, i32 depth)
 {
@@ -113,14 +138,14 @@ static v3 sample(const world_t *world, ray_t ray, i32 max_depth, i32 depth)
 	{	
 		ray_t new_ray;
 		v3 attenuation;
-		if ((depth < max_depth) && 
-			scatter_lambertian(ray, &hit, &attenuation, &new_ray))
+
+		if ((depth < max_depth) && scatter(ray, &hit, &attenuation, &new_ray))
 		{
 			return v3_mul(attenuation, sample(world, new_ray, max_depth, (depth+1)));
 		}
 		return V3(0.f, 0.f, 0.f);
 	}
-	return V3(0.2f, 0.3f, 0.9f);
+	return world->background;
 };
 
 static inline u32 srgb(v3 color)

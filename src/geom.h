@@ -94,6 +94,10 @@ inline v3  v3_norm(v3 v)
 		return v3_scale(v, f32_isqrt(l2));
 	return v;
 }
+inline v3 v3_refl(v3 v, v3 n)
+{
+	return v3_sub(v, v3_scale(n, 2.f*v3_dot(v, n)));
+}
 
 /* V4 */
 inline v4 V4(f32 x, f32 y, f32 z, f32 w)
