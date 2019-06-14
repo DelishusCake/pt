@@ -77,6 +77,7 @@ inline f32 f32_abs(f32 v)         { return fabsf(v); };
 inline f32 f32_sqrt(f32 v)        { return sqrtf(v); };
 inline f32 f32_pow(f32 v, f32 p)  { return powf(v, p); };
 inline f32 f32_isqrt(f32 v)       { return (1.f / sqrtf(v)); };
+inline f32 f32_square(f32 v)      { return v*v; };
 
 inline f32 f32_sin(f32 v)         { return sinf(v); }
 inline f32 f32_cos(f32 v)         { return cosf(v); }

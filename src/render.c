@@ -5,9 +5,7 @@ typedef struct
 	f32 t;
 	v3 normal;
 	v3 position;
-
-	v3 albedo;
-	material_type_t material_type;
+	material_t material;
 } hit_t;
 
 static bool sphere_hit(const sphere_t *sphere, ray_t ray, 
@@ -16,7 +14,7 @@ static bool sphere_hit(const sphere_t *sphere, ray_t ray,
 	const v3 oc = v3_sub(ray.origin, sphere->center);
 	const f32 a = v3_dot(ray.direction, ray.direction);
 	const f32 b = v3_dot(ray.direction, oc);
-	const f32 c = v3_dot(oc, oc) - (sphere->radius*sphere->radius);
+	const f32 c = v3_dot(oc, oc) - f32_square(sphere->radius);
 	
 	const f32 det = b*b - a*c;
 	if (det > 0.f)
@@ -33,8 +31,7 @@ static bool sphere_hit(const sphere_t *sphere, ray_t ray,
 			hit->t = t;
 			hit->normal = normal;
 			hit->position = position;
-			hit->albedo = sphere->albedo;
-			hit->material_type = sphere->material_type;
+			hit->material = sphere->material;
 			return true;
 		}
 	}
@@ -100,29 +97,90 @@ static bool scatter_lambertian(ray_t ray, const hit_t *hit,
 	new_ray->origin = hit->position;
 	new_ray->direction = v3_norm(v3_sub(target, hit->position));
 
-	*attenuation = hit->albedo;
+	*attenuation = hit->material.albedo;
 	return true;
 };
+
 static bool scatter_metal(ray_t ray, const hit_t *hit, 
 	v3 *attenuation, ray_t *new_ray)
 {
 	v3 reflected = v3_refl(ray.direction, hit->normal);
 
 	new_ray->origin = hit->position;
-	new_ray->direction = reflected;
+	new_ray->direction = v3_add(reflected, v3_scale(v3_unit_rand(), hit->material.fuzz));
 
-	*attenuation = hit->albedo;
+	*attenuation = hit->material.albedo;
 	return (v3_dot(reflected, hit->normal) > 0.f);
 };
+
+static inline f32 schlick(f32 cos, f32 ref_idx)
+{
+	const f32 r_0 = f32_square((1.f - ref_idx) / (1.f + ref_idx));
+	return r_0 + (1.f - r_0)*f32_pow((1.f-cos), 5);
+};
+static inline bool refract(v3 v, v3 n, f32 ni_over_nt, v3 *refracted)
+{
+	const v3 uv = v3_norm(v);
+	const f32 dt = v3_dot(uv, n);
+	const f32 det = 1.f - f32_square(ni_over_nt)*(1.f - f32_square(dt));
+	if (det > 0.f)
+	{
+		*refracted = v3_sub(
+			v3_scale(v3_sub(uv, v3_scale(n, dt)), ni_over_nt),
+			v3_scale(n, f32_sqrt(det))
+		);
+		return true;
+	}
+	return false;
+};
+static bool scatter_dielectric(ray_t ray, const hit_t *hit, 
+	v3 *attenuation, ray_t *new_ray)
+{
+	const f32 eps = 1e-5;
+
+	*attenuation = hit->material.albedo;
+
+	v3 out_normal;
+	f32 cos, ni_over_nt;
+	if (v3_dot(ray.direction, hit->normal) > eps)
+	{
+		out_normal = v3_neg(hit->normal);
+		ni_over_nt = hit->material.refractivity;
+		cos = hit->material.refractivity*v3_dot(ray.direction, hit->normal) / v3_len(ray.direction);
+	} else {
+		out_normal = hit->normal;
+		ni_over_nt = 1.f / hit->material.refractivity;
+		cos = -v3_dot(ray.direction, hit->normal) / v3_len(ray.direction);
+	}
+	
+	v3 direction;
+	v3 refr_direction;
+	v3 refl_direction = v3_refl(ray.direction, hit->normal);
+	if (refract(ray.direction, out_normal, ni_over_nt, &refr_direction))
+	{
+		const f32 refl_probability = schlick(cos, hit->material.refractivity);
+		direction = (f32_rand() < refl_probability) ? refl_direction : refr_direction;;
+	} else {
+		direction = refl_direction;
+	}
+	
+	new_ray->origin = hit->position;
+	new_ray->direction = direction;
+	return true;
+};
+
 static bool scatter(ray_t ray, const hit_t *hit, 
 	v3 *attenuation, ray_t *new_ray)
 {
-	switch (hit->material_type)
+	switch (hit->material.type)
 	{
-		case MATERIAL_LAMBERTIAN:
-			return scatter_lambertian(ray, hit, attenuation, new_ray);
 		case MATERIAL_METAL:
 			return scatter_metal(ray, hit, attenuation, new_ray);
+		case MATERIAL_LAMBERTIAN:
+			return scatter_lambertian(ray, hit, attenuation, new_ray);
+		case MATERIAL_DIELECTRIC:
+			return scatter_dielectric(ray, hit, attenuation, new_ray);
+		default: break;
 	}
 	return false;
 }

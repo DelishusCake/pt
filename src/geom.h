@@ -38,6 +38,11 @@ typedef struct
 	v3 direction;
 } ray_t;
 
+typedef struct
+{
+	i32 x, y, w, h;
+} rect_t;
+
 /* V2 */
 inline v2 V2(f32 x, f32 y)
 {
@@ -76,6 +81,7 @@ inline v3  v3_add(v3 a, v3 b)		{ return V3(a.x+b.x, a.y+b.y, a.z+b.z); };
 inline v3  v3_sub(v3 a, v3 b)  		{ return V3(a.x-b.x, a.y-b.y, a.z-b.z); };
 inline v3  v3_mul(v3 a, v3 b)  		{ return V3(a.x*b.x, a.y*b.y, a.z*b.z); };
 inline v3  v3_scale(v3 v, f32 s)	{ return V3(v.x*s, v.y*s, v.z*s); };
+inline v3  v3_neg(v3 v)  			{ return V3(-v.x, -v.y, -v.z); };
 inline f32 v3_dot(v3 a, v3 b)		{ return a.x*b.x + a.y*b.y + a.z*b.z; };
 inline v3  v3_cross(v3 a, v3 b)
 {

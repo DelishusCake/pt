@@ -8,15 +8,15 @@
 
 	"render":
 	{
-		"samples": 128, 
-		"bounces": 8,
+		"samples": 32, 
+		"bounces": 4,
 		"tiles": [16, 9],
 		"background": [ 1.0, 1.0, 1.0],
 	},
 
 	"camera": 
 	{
-		"fov": 45.0,
+		"fov": 65.0,
 		"up": [0.0, 1.0, 0.0],
 		"at": [0.0, 0.0, -1.0],
 		"position": [0.0, 0.0, 0.0],
@@ -35,14 +35,24 @@
 		"center": [0.0, -0.5, -1.0],
 		"radius": 0.25,
 
-		"albedo": [0.2, 0.3, 0.99],
+		"albedo": [0.1, 0.3, 0.99],
 		"material_type": "lambertian",
+	},
+	"sphere":
+	{
+		"center": [0.0, 0.10, -0.4],
+		"radius": 0.1,
+
+		"albedo": [0.99, 0.99, 0.99],
+		"refractivity": 1.5,
+		"material_type": "dielectric",
 	},
 	"sphere":
 	{
 		"center": [1.0, 0.0, -1.5],
 		"radius": 0.5,
 
+		"fuzz": 0.01,
 		"albedo": [0.89, 0.89, 0.89],
 		"material_type": "metal",
 	},

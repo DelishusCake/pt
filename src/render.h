@@ -11,17 +11,25 @@
 
 typedef enum
 {
+	MATERIAL_NONE,
 	MATERIAL_METAL,
+	MATERIAL_DIELECTRIC,
 	MATERIAL_LAMBERTIAN,
 } material_type_t;
 typedef struct
 {
-	// Geometry data
+	material_type_t type;
+
+	f32 fuzz;
+	v3  albedo;
+	f32 refractivity;
+} material_t;
+
+typedef struct
+{
 	v3  center;
 	f32 radius;
-	// Material data
-	v3  albedo;
-	material_type_t material_type;
+	material_t material;
 } sphere_t;
 typedef struct
 {
@@ -41,11 +49,6 @@ typedef struct
 camera_t look_at(
 	v3 position, v3 at, v3 up, 
 	f32 fov, f32 aspect_ratio);
-
-typedef struct
-{
-	i32 x, y, w, h;
-} rect_t;
 
 void render(const world_t *world, 
 	const camera_t *camera, 

@@ -164,8 +164,8 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 {
 	f32 radius = 0.f;
 	v3 center = V3(0.f, 0.f, 0.f);
-	v3 albedo = V3(0.f, 0.f, 0.f);
-	material_type_t material_type = MATERIAL_LAMBERTIAN;
+
+	material_t material = {0};
 
 	const jsmntok_t *top = parser_get(parser);
 	assert(top->type == JSMN_OBJECT);
@@ -175,13 +175,16 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 		const jsmntok_t *name = parser_get(parser);
 		const jsmntok_t *value = parser_get(parser);
 
-		if (parser_check_equals(parser, name, "center"))	center = parser_get_v3(parser, value);
-		if (parser_check_equals(parser, name, "radius"))	radius = parser_get_f32(parser, value);
-		if (parser_check_equals(parser, name, "albedo"))	albedo = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "center"))        center = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "radius"))        radius = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "albedo"))        material.albedo = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "fuzz"))          material.fuzz = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "refractivity"))	material.refractivity = parser_get_f32(parser, value);
 		if (parser_check_equals(parser, name, "material_type"))
 		{
-			if (parser_check_equals(parser, value, "metal")) material_type = MATERIAL_METAL;
-			if (parser_check_equals(parser, value, "lambertian")) material_type = MATERIAL_LAMBERTIAN;
+			if (parser_check_equals(parser, value, "metal")) material.type = MATERIAL_METAL;
+			if (parser_check_equals(parser, value, "dielectric")) material.type = MATERIAL_DIELECTRIC;
+			if (parser_check_equals(parser, value, "lambertian")) material.type = MATERIAL_LAMBERTIAN;
 		};
 	};
 
@@ -197,8 +200,7 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 	const u32 index = scene->world.sphere_count++;
 	scene->world.spheres[index].radius = radius;
 	scene->world.spheres[index].center = center;
-	scene->world.spheres[index].albedo = albedo;
-	scene->world.spheres[index].material_type = material_type;
+	scene->world.spheres[index].material = material;
 };
 static void scene_parse(scene_t *scene, parser_t *parser)
 {
