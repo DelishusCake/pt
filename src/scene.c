@@ -183,8 +183,9 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 
 		if (parser_check_equals(parser, name, "center"))        center = parser_get_v3(parser, value);
 		if (parser_check_equals(parser, name, "radius"))        radius = parser_get_f32(parser, value);
-		if (parser_check_equals(parser, name, "albedo"))        material.albedo = parser_get_v3(parser, value);
 		if (parser_check_equals(parser, name, "fuzz"))          material.fuzz = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "albedo"))        material.albedo = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "emittance"))     material.emittance = parser_get_v3(parser, value);
 		if (parser_check_equals(parser, name, "refractivity"))	material.refractivity = parser_get_f32(parser, value);
 		if (parser_check_equals(parser, name, "material_type"))
 		{

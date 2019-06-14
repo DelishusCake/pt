@@ -20,6 +20,7 @@ typedef struct
 
 	f32 fuzz;
 	v3  albedo;
+	v3  emittance;
 	f32 refractivity;
 } material_t;
 

@@ -111,6 +111,8 @@ static v3 sample(const world_t *world, ray_t ray, i32 bounces)
 			break;
 		}
 
+		color = v3_add(color, v3_mul(acc, hit.material.emittance));
+
 		ray_t new_ray;
 		v3 attenuation;
 		if (scatter(ray, &hit, &attenuation, &new_ray))

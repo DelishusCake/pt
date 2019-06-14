@@ -37,6 +37,7 @@
 		"radius": 0.25,
 
 		"albedo": [0.1, 0.3, 0.99],
+		"emittance": [0.1, 0.3, 1.5],
 		"material_type": "lambertian",
 	},
 	"sphere":
