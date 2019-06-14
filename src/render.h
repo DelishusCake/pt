@@ -41,14 +41,15 @@ typedef struct
 
 typedef struct
 {
-	v3 position;
 	v3 x, y, z;
 	v3 h, v, f;
+	v3 position;
+	f32 aperture;
 } camera_t;
 
 camera_t look_at(
 	v3 position, v3 at, v3 up, 
-	f32 fov, f32 aspect_ratio);
+	f32 fov, f32 aperture, f32 aspect_ratio);
 
 void render(const world_t *world, 
 	const camera_t *camera, 

@@ -54,7 +54,7 @@ static bool world_hit(const world_t *world, ray_t ray,
 
 camera_t look_at(
 	v3 position, v3 at, v3 up, 
-	f32 fov, f32 aspect_ratio)
+	f32 fov, f32 aperture, f32 aspect_ratio)
 {
 	const v3 z = v3_norm(v3_sub(position, at));
 	const v3 x = v3_norm(v3_cross(up, z));
@@ -71,7 +71,6 @@ camera_t look_at(
 	const v3 v = v3_scale(y, hh*focus*2.f);
 
 	camera_t camera;
-	camera.position = position;
 	camera.x = x;
 	camera.y = y;
 	camera.z = z;
@@ -79,13 +78,19 @@ camera_t look_at(
 	camera.f = f;
 	camera.h = h;
 	camera.v = v;
+
+	camera.aperture = aperture;
+	camera.position = position;
 	return camera;
 };
 static ray_t camera_ray(const camera_t *camera, f32 u, f32 v)
 {
+	const v2 r = v2_scale(v2_unit_rand(), 0.5f*camera->aperture);
+	const v3 offset = v3_add(v3_scale(camera->x, r.x), v3_scale(camera->y, r.y));
+
 	ray_t ray;
-	ray.origin = camera->position;
-	ray.direction = v3_add(camera->f, v3_add(v3_scale(camera->h, u), v3_scale(camera->v, v)));
+	ray.origin = v3_add(camera->position, offset);
+	ray.direction = v3_sub(v3_add(camera->f, v3_add(v3_scale(camera->h, u), v3_scale(camera->v, v))), offset);
 	return ray;
 }
 

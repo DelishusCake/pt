@@ -130,6 +130,7 @@ static void scene_parse_camera(scene_t *scene, parser_t *parser)
 	const f32 aspect_ratio = ((f32) scene->w / (f32) scene->h);
 	
 	f32 fov = 0.f;
+	f32 aperture = 0.f;
 	v3 up = V3(0.f, 0.f, 0.f);
 	v3 at = V3(0.f, 0.f, 0.f);
 	v3 position = V3(0.f, 0.f, 0.f);
@@ -143,6 +144,7 @@ static void scene_parse_camera(scene_t *scene, parser_t *parser)
 		const jsmntok_t *value = parser_get(parser);
 
 		if (parser_check_equals(parser, name, "fov"))		fov = parser_get_f32(parser, value);
+		if (parser_check_equals(parser, name, "aperture"))	aperture = parser_get_f32(parser, value);
 		if (parser_check_equals(parser, name, "position"))	position = parser_get_v3(parser, value);
 		if (parser_check_equals(parser, name, "up"))		up = parser_get_v3(parser, value);
 		if (parser_check_equals(parser, name, "at"))		at = parser_get_v3(parser, value);
@@ -158,7 +160,7 @@ static void scene_parse_camera(scene_t *scene, parser_t *parser)
 
 	scene->camera = look_at(
 		position, at, up,
-		fov, aspect_ratio);
+		fov, aperture, aspect_ratio);
 };
 static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 {

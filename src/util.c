@@ -13,6 +13,16 @@ f32 f32_rand()
 {
 	return (f32) xorshift32() / (f32) UINT32_MAX;
 }
+v2 v2_unit_rand()
+{
+	v2 p;
+	do 
+	{
+		v2 r = V2(f32_rand(), f32_rand());
+		p = v2_sub(v2_scale(r, 2.f), V2(1.f, 1.f)); 
+	} while (v2_len2(p) >= 1.f);
+	return p;
+};
 v3 v3_unit_rand()
 {
 	v3 p;
