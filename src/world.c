@@ -251,8 +251,7 @@ static bool sphere_list_hit(const sphere_list_t *list, ray_t ray, f32 t_min, f32
 	return false;
 };
 static void build_sphere_list(sphere_list_t *list,
-	const bvh_t *bvh, ray_t ray, 
-	f32 t_min, f32 t_max)
+	const bvh_t *bvh, ray_t ray, f32 t_min, f32 t_max)
 {
 	if (aabb_hit(bvh->aabb, ray, t_min, t_max))
 	{
