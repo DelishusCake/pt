@@ -1,6 +1,17 @@
 #ifndef CORE_H
 #define CORE_H
 
+#if defined(__GNUC__)
+#define GCC 1
+#else
+#define GCC 0
+#endif
+#if defined(_MSC_VER)
+#define MSVC 1
+#else
+#define MSVC 0
+#endif
+
 #include <assert.h>
 
 #include <stdlib.h>
@@ -11,6 +22,8 @@
 #include <string.h>
 #include <float.h>
 #include <math.h>
+
+#include <xmmintrin.h>
 
 typedef uint8_t  u8;
 typedef uint16_t u16;
@@ -71,5 +84,14 @@ inline f32 f32_tan(f32 v)         { return tanf(v); }
 inline f32 f32_atan(f32 v)        { return atanf(v); }
 
 inline f32 f32_saturate(f32 v)    { return clamp(v, 0.f, 1.f); }
+
+inline u32 atomic_inc(volatile u32 *value)
+{
+#if GCC
+	return __sync_fetch_and_add(value, 1);
+#elif MSVC
+	return _InterlockedExchangeAdd(value, 1);
+#endif
+}
 
 #endif

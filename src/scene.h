@@ -13,6 +13,7 @@ typedef struct
 	char output[512];
 	// Render 
 	i32 samples, bounces;
+	i32 tiles_x, tiles_y;
 	// World
 	world_t world;
 	camera_t camera;

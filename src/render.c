@@ -156,7 +156,8 @@ static inline u32 srgb(v3 color)
 	const u8 b = (u32)(f32_pow(f32_saturate(color.b), exp) * 255.f + 0.5f) & 0xFF;
 	return (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
 };
-void render(const world_t *world, 
+void render(
+	const world_t *world, 
 	const camera_t *camera, 
 	i32 samples, i32 bounces,
 	image_t *image, rect_t area)

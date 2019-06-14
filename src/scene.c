@@ -84,13 +84,22 @@ static void scene_parse_render(scene_t *scene, parser_t *parser)
 		if (parser_check_equals(parser, name, "samples"))   scene->samples = parser_get_i32(parser, value);
 		if (parser_check_equals(parser, name, "bounces"))   scene->bounces = parser_get_i32(parser, value);
 		if (parser_check_equals(parser, name, "background")) background = parser_get_v3(parser, value);
+		if (parser_check_equals(parser, name, "tiles"))
+		{
+			assert(value->type == JSMN_ARRAY);
+			assert(value->size == 2);
+
+			scene->tiles_x = parser_get_i32(parser, parser_get(parser));
+			scene->tiles_y = parser_get_i32(parser, parser_get(parser));
+		}
 	};
 
 	scene->world.background = background;
 
 	#if 1
-	printf("RENDER: %d samples %d bounces\n", 
-		scene->samples, scene->bounces);
+	printf("RENDER: %d samples %d bounces %dx%d tiles\n", 
+		scene->samples, scene->bounces,
+		scene->tiles_x, scene->tiles_y);
 	#endif
 }
 static void scene_parse_image(scene_t *scene, parser_t *parser)
