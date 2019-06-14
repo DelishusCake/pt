@@ -12,6 +12,7 @@ typedef union
 {
 	struct { f32 x, y, z; };
 	struct { f32 r, g, b; };
+	f32 v[3];
 } v3;
 
 typedef union
@@ -37,6 +38,12 @@ typedef struct
 	v3 origin;
 	v3 direction;
 } ray_t;
+
+typedef struct
+{
+	v3 min;
+	v3 max;
+} aabb_t;
 
 typedef struct
 {
@@ -205,6 +212,36 @@ inline ray_t ray(v3 origin, v3 direction)
 inline v3 ray_point(ray_t ray, f32 t)
 {
 	return v3_add(ray.origin, v3_scale(ray.direction, t));
+};
+
+inline bool aabb_hit(aabb_t aabb, ray_t ray, f32 t_min, f32 t_max)
+{
+	for (u32 i = 0; i < 3; i++)
+	{
+		f32 i_d = 1.f / ray.direction.v[i];
+		f32 t_0 = (aabb.min.v[i] - ray.origin.v[i]) * i_d;
+		f32 t_1 = (aabb.max.v[i] - ray.origin.v[i]) * i_d;
+		if (i_d < 0.f)
+			swap(f32, t_0, t_1);
+		t_min = t_0 > t_min ? t_0 : t_min;
+		t_max = t_1 < t_max ? t_1 : t_max;
+		if (t_max <= t_min)
+			return false;
+	}
+	return true;
+};
+inline aabb_t aabb_combine(aabb_t a, aabb_t b)
+{
+	aabb_t aabb;
+	aabb.min = V3(
+		min(a.min.x, b.min.x),
+		min(a.min.y, b.min.y),
+		min(a.min.z, b.min.z));
+	aabb.max = V3(
+		max(a.max.x, b.max.x),
+		max(a.max.y, b.max.y),
+		max(a.max.z, b.max.z));
+	return aabb;
 };
 
 #endif

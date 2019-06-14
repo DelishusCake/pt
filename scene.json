@@ -5,13 +5,13 @@
 		"height": 540,
 		"name": "image.png",
 	},
-
+	
 	"render":
 	{
-		"samples": 1024, 
+		"samples": 128, 
 		"bounces": 16,
 		"tiles": [16, 9],
-		"background": [ 1.0, 1.0, 1.0],
+		"background": [ 0.8, 1.0, 1.0],
 	},
 
 	"camera": 

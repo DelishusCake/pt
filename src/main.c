@@ -11,7 +11,9 @@
 
 #include <time.h>
 
-#if 1
+#define USE_TILES 1
+
+#if USE_TILES
 #define MAX_TILES	1024
 
 typedef struct
@@ -103,29 +105,37 @@ int main(int argc, const char *argv[])
 		return 0;
 	}
 
+	srand(time(NULL));
+
+	printf("Loading scene...");
 	scene_t *scene = scene_load(argv[1]);
 	if (scene)
 	{
+		printf("done\n");
+
+		printf("Building bvh...");
+		world_build_bvh(&scene->world);
+		printf("done\n");
+
 		image_t image;
 		image_alloc(&image, scene->w, scene->h);
 
+		printf("Rendering...");
 		const clock_t start = clock();
-
-		#if 0
-		rect_t area = { 0,0,image.width,image.height};
-		render(
-			&scene->world, 
-			&scene->camera,
-			scene->samples, 
-			scene->bounces, 
-			&image, area);
+		#if USE_TILES
+			render_tiles(scene, &image, 8);
 		#else
-		render_tiles(scene, &image, 8);
+			rect_t area = { 0,0,image.width,image.height};
+			render(
+				&scene->world, 
+				&scene->camera,
+				scene->samples, 
+				scene->bounces, 
+				&image, area);
 		#endif
-
 		const clock_t end = clock();
 		const double time = (double) (end - start) / CLOCKS_PER_SEC;
-		printf("Render took %f seconds\n", time);
+		printf("done\nRender took %f seconds\n", time);
 
 		image_save(&image, scene->output);
 		image_free(&image);

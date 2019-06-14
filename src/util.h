@@ -2,12 +2,15 @@
 #define UTIL_H
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "core.h"
 #include "geom.h"
 
 // rand range [0.f, 1.f]
 f32 f32_rand();
+
+u32 u32_rand(u32 lo, u32 hi);
 
 v2 v2_unit_rand();
 v3 v3_unit_rand();

@@ -6,50 +6,7 @@
 #include "geom.h"
 
 #include "image.h"
-
-#define MAX_SPHERES	256
-
-typedef enum
-{
-	MATERIAL_NONE,
-	MATERIAL_METAL,
-	MATERIAL_DIELECTRIC,
-	MATERIAL_LAMBERTIAN,
-} material_type_t;
-typedef struct
-{
-	material_type_t type;
-
-	f32 fuzz;
-	v3  albedo;
-	f32 refractivity;
-} material_t;
-
-typedef struct
-{
-	v3  center;
-	f32 radius;
-	material_t material;
-} sphere_t;
-typedef struct
-{
-	v3 background;
-
-	u32 sphere_count;
-	sphere_t spheres[MAX_SPHERES];
-} world_t;
-
-typedef struct
-{
-	v3 x, y, z;
-	v3 h, v, f;
-	v3 position;
-	f32 aperture;
-} camera_t;
-
-camera_t look_at(
-	v3 position, v3 at, v3 up, 
-	f32 fov, f32 aperture, f32 aspect_ratio);
+#include "world.h"
 
 void render(const world_t *world, 
 	const camera_t *camera, 

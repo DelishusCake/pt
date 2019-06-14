@@ -27,22 +27,26 @@ static i32 parser_get_i32(const parser_t *parser, const jsmntok_t *token)
 	assert(token->type == JSMN_PRIMITIVE);
 	const size_t len = (token->end-token->start);
 		
-	char str[len+1];
+	char *str = malloc(len+1);
 	memcpy(str, (parser->string + token->start), len);
 	str[len] = '\0';
 
-	return atoi(str);
+	int value = atoi(str);
+	free(str);
+	return value;
 };
 static f32 parser_get_f32(const parser_t *parser, const jsmntok_t *token)
 {
 	assert(token->type == JSMN_PRIMITIVE);
 	const size_t len = (token->end-token->start);
 		
-	char str[len+1];
+	char *str = malloc(len+1);
 	memcpy(str, (parser->string + token->start), len);
 	str[len] = '\0';
 
-	return atof(str);
+	f32 v = (f32) atof(str);
+	free(str);
+	return v;
 };
 static void parser_get_str(const parser_t *parser, const jsmntok_t *token, 
 	char *str, size_t str_len)
@@ -96,7 +100,7 @@ static void scene_parse_render(scene_t *scene, parser_t *parser)
 
 	scene->world.background = background;
 
-	#if 1
+	#if 0
 	printf("RENDER: %d samples %d bounces %dx%d tiles\n", 
 		scene->samples, scene->bounces,
 		scene->tiles_x, scene->tiles_y);
@@ -117,7 +121,7 @@ static void scene_parse_image(scene_t *scene, parser_t *parser)
 		if (parser_check_equals(parser, name, "height"))  scene->h = parser_get_i32(parser, value);
 	};
 
-	#if 1
+	#if 0
 	printf("IMAGE: \"%s\" %dx%d\n", 
 		scene->output, 
 		scene->w, scene->h);
@@ -203,6 +207,7 @@ static void scene_parse_sphere(scene_t *scene, parser_t *parser)
 	scene->world.spheres[index].radius = radius;
 	scene->world.spheres[index].center = center;
 	scene->world.spheres[index].material = material;
+	scene->world.spheres[index].aabb = sphere_aabb(center, radius);
 };
 static void scene_parse(scene_t *scene, parser_t *parser)
 {

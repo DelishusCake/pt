@@ -4,7 +4,7 @@
 #include "core.h"
 #include "util.h"
 
-#include "render.h"
+#include "world.h"
 
 typedef struct
 {

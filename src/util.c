@@ -1,18 +1,13 @@
 #include "util.h"
 
-/* 32bit random number generator */
-static u32 xorshift32_seed = 0xDEADBEEF; //Remember to set this at some point
-static u32 xorshift32()
-{
-	xorshift32_seed ^= xorshift32_seed << 13;
-	xorshift32_seed ^= xorshift32_seed >> 17;
-	xorshift32_seed ^= xorshift32_seed << 5;
-	return xorshift32_seed;
-};
 f32 f32_rand()
 {
-	return (f32) xorshift32() / (f32) UINT32_MAX;
+	return ((f32) rand()/(f32) (RAND_MAX));
 }
+u32 u32_rand(u32 lo, u32 hi)
+{
+	return (rand() % (hi - lo + 1)) + lo; 
+};
 v2 v2_unit_rand()
 {
 	v2 p;

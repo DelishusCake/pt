@@ -1,123 +1,5 @@
 #include "render.h"
 
-typedef struct
-{
-	f32 t;
-	v3 normal;
-	v3 position;
-	material_t material;
-} hit_t;
-
-static bool sphere_hit(const sphere_t *sphere, ray_t ray, 
-	f32 min_t, f32 max_t, hit_t *hit)
-{
-	const v3 oc = v3_sub(ray.origin, sphere->center);
-	const f32 a = v3_dot(ray.direction, ray.direction);
-	const f32 b = v3_dot(ray.direction, oc);
-	const f32 c = v3_dot(oc, oc) - f32_square(sphere->radius);
-	
-	const f32 det = b*b - a*c;
-	if (det > 0.f)
-	{
-		const f32 t_0 = (-b - f32_sqrt(det)) / (a);
-		const f32 t_1 = (-b + f32_sqrt(det)) / (a);
-		const f32 t = min(t_0, t_1);
-
-		if ((t < hit->t) && (t > min_t) && (t < max_t))
-		{
-			const v3 position = ray_point(ray, t);
-			const v3 normal = v3_norm(v3_sub(position, sphere->center));
-
-			hit->t = t;
-			hit->normal = normal;
-			hit->position = position;
-			hit->material = sphere->material;
-			return true;
-		}
-	}
-	return false;
-};
-static bool world_hit(const world_t *world, ray_t ray,
-	f32 min_t, f32 max_t, hit_t *hit)
-{
-	bool result = false;
-	for (u32 i = 0; i < world->sphere_count; i++)
-	{
-		const sphere_t *sphere = world->spheres + i;
-		if (sphere_hit(sphere, ray, min_t, max_t, hit))
-		{
-			result = true;
-		}
-	};
-	return result;
-};
-
-camera_t look_at(
-	v3 position, v3 at, v3 up, 
-	f32 fov, f32 aperture, f32 aspect_ratio)
-{
-	const v3 z = v3_norm(v3_sub(position, at));
-	const v3 x = v3_norm(v3_cross(up, z));
-	const v3 y = v3_norm(v3_cross(z, x));
-
-	const f32 focus = v3_len(v3_sub(position, at));
-
-	const f32 theta = to_radians(fov);
-	const f32 hh = f32_tan(theta/2);
-	const f32 hw = hh * aspect_ratio;
-
-	const v3 f = v3_scale(v3_sub(v3_sub(v3_scale(x, -hw), v3_scale(y, hh)), z), focus);
-	const v3 h = v3_scale(x, hw*focus*2.f);
-	const v3 v = v3_scale(y, hh*focus*2.f);
-
-	camera_t camera;
-	camera.x = x;
-	camera.y = y;
-	camera.z = z;
-
-	camera.f = f;
-	camera.h = h;
-	camera.v = v;
-
-	camera.aperture = aperture;
-	camera.position = position;
-	return camera;
-};
-static ray_t camera_ray(const camera_t *camera, f32 u, f32 v)
-{
-	const v2 r = v2_scale(v2_unit_rand(), 0.5f*camera->aperture);
-	const v3 offset = v3_add(v3_scale(camera->x, r.x), v3_scale(camera->y, r.y));
-
-	ray_t ray;
-	ray.origin = v3_add(camera->position, offset);
-	ray.direction = v3_sub(v3_add(camera->f, v3_add(v3_scale(camera->h, u), v3_scale(camera->v, v))), offset);
-	return ray;
-}
-
-static bool scatter_lambertian(ray_t ray, const hit_t *hit, 
-	v3 *attenuation, ray_t *new_ray)
-{
-	v3 target = v3_add(v3_add(hit->position, hit->normal), v3_unit_rand());
-
-	new_ray->origin = hit->position;
-	new_ray->direction = v3_norm(v3_sub(target, hit->position));
-
-	*attenuation = hit->material.albedo;
-	return true;
-};
-
-static bool scatter_metal(ray_t ray, const hit_t *hit, 
-	v3 *attenuation, ray_t *new_ray)
-{
-	v3 reflected = v3_refl(ray.direction, hit->normal);
-
-	new_ray->origin = hit->position;
-	new_ray->direction = v3_add(reflected, v3_scale(v3_unit_rand(), hit->material.fuzz));
-
-	*attenuation = hit->material.albedo;
-	return (v3_dot(reflected, hit->normal) > 0.f);
-};
-
 static inline f32 schlick(f32 cos, f32 ref_idx)
 {
 	const f32 r_0 = f32_square((1.f - ref_idx) / (1.f + ref_idx));
@@ -137,6 +19,29 @@ static inline bool refract(v3 v, v3 n, f32 ni_over_nt, v3 *refracted)
 		return true;
 	}
 	return false;
+};
+
+static bool scatter_lambertian(ray_t ray, const hit_t *hit, 
+	v3 *attenuation, ray_t *new_ray)
+{
+	v3 target = v3_add(v3_add(hit->position, hit->normal), v3_unit_rand());
+
+	new_ray->origin = hit->position;
+	new_ray->direction = v3_norm(v3_sub(target, hit->position));
+
+	*attenuation = hit->material.albedo;
+	return true;
+};
+static bool scatter_metal(ray_t ray, const hit_t *hit, 
+	v3 *attenuation, ray_t *new_ray)
+{
+	v3 reflected = v3_refl(ray.direction, hit->normal);
+
+	new_ray->origin = hit->position;
+	new_ray->direction = v3_add(reflected, v3_scale(v3_unit_rand(), hit->material.fuzz));
+
+	*attenuation = hit->material.albedo;
+	return (v3_dot(reflected, hit->normal) > 0.f);
 };
 static bool scatter_dielectric(ray_t ray, const hit_t *hit, 
 	v3 *attenuation, ray_t *new_ray)
@@ -173,7 +78,6 @@ static bool scatter_dielectric(ray_t ray, const hit_t *hit,
 	new_ray->direction = direction;
 	return true;
 };
-
 static bool scatter(ray_t ray, const hit_t *hit, 
 	v3 *attenuation, ray_t *new_ray)
 {
@@ -192,11 +96,10 @@ static bool scatter(ray_t ray, const hit_t *hit,
 
 static v3 sample(const world_t *world, ray_t ray, i32 max_depth, i32 depth)
 {
-	const f32 min_t = 0.001f;
+	const f32 min_t = 0.01f;
 	const f32 max_t = FLT_MAX;
 
 	hit_t hit;
-	hit.t = INFINITY;
 	if (world_hit(world, ray, min_t, max_t, &hit))
 	{	
 		ray_t new_ray;
@@ -239,7 +142,7 @@ void render(
 				const f32 u = (((f32) i + f32_rand()) / (f32) image->width);
 				const f32 v = (((f32) j + f32_rand()) / (f32) image->height);
 
-				ray_t ray = camera_ray(camera, u, v);
+				ray_t ray = camera_ray(camera, u,v);
 
 				color = v3_add(color, sample(world, ray, bounces, 0));
 			}
