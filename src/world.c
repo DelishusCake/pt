@@ -74,7 +74,6 @@ void world_build_bvh(world_t *world)
 	free(spheres);
 };
 
-#if 0
 static bool sphere_hit(const sphere_t *sphere, ray_t ray, 
 	f32 t_min, f32 t_max, hit_t *hit)
 {
@@ -140,160 +139,12 @@ static bool bvh_hit(const bvh_t *bvh, ray_t ray,
 	};
 	return false;
 };
-bool world_hit(const world_t *world, ray_t ray,
+bool world_hit(lin_alloc_t *temp_alloc, 
+	const world_t *world, ray_t ray,
 	f32 t_min, f32 t_max, hit_t *hit)
 {
 	return bvh_hit(world->bvh, ray, t_min, t_max, hit);
 };
-#else
-typedef struct
-{
-	u32 size, used;
-
-	f32 *radius;
-	f32 *center_x;
-	f32 *center_y;
-	f32 *center_z;
-
-	material_t *material;
-} sphere_list_t;
-
-static inline __m128 _mm_dot_ps(
-	__m128 a_x, __m128 a_y, __m128 a_z,
-	__m128 b_x, __m128 b_y, __m128 b_z)
-{
-	const __m128 x = _mm_mul_ps(a_x, b_x);
-	const __m128 y = _mm_mul_ps(a_y, b_y);
-	const __m128 z = _mm_mul_ps(a_z, b_z);
-	return _mm_add_ps(_mm_add_ps(x, y), z);
-};
-static inline __m128 _mm_square_ps(__m128 v)
-{
-	return _mm_mul_ps(v,v);
-};
-static inline __m128 _mm_neg_ps(__m128 v)
-{
-	return _mm_sub_ps(_mm_set1_ps(0.f), v); 
-};
-static bool sphere_list_hit(lin_alloc_t *temp_alloc, const sphere_list_t *list, ray_t ray, f32 t_min, f32 t_max, hit_t *hit)
-{
-	const u32 count = (list->used + 3) & ~0x03;
-	
-	const __m128 zero = _mm_set1_ps(0.f);
-	const __m128 eps = _mm_set1_ps(1e-5);
-
-	const __m128 origin_x = _mm_load1_ps(&ray.origin.x);
-	const __m128 origin_y = _mm_load1_ps(&ray.origin.y);
-	const __m128 origin_z = _mm_load1_ps(&ray.origin.z);
-
-	const __m128 direction_x = _mm_load1_ps(&ray.direction.x);
-	const __m128 direction_y = _mm_load1_ps(&ray.direction.y);
-	const __m128 direction_z = _mm_load1_ps(&ray.direction.z);
-
-	f32 *values = lin_alloc_push(temp_alloc, count*sizeof(f32), 16);
-	assert(values != NULL);
-
-	for (u32 i = 0; i < count; i += 4)
-	{
-		const __m128 radius = _mm_load_ps(list->radius + i);	
-		const __m128 center_x = _mm_load_ps(list->center_x + i);
-		const __m128 center_y = _mm_load_ps(list->center_y + i);
-		const __m128 center_z = _mm_load_ps(list->center_z + i);
-		
-		const __m128 oc_x = _mm_sub_ps(origin_x, center_x);
-		const __m128 oc_y = _mm_sub_ps(origin_y, center_y);
-		const __m128 oc_z = _mm_sub_ps(origin_z, center_z);
-
-		const __m128 a = _mm_dot_ps(
-			direction_x, direction_y, direction_z, 
-			direction_x, direction_y, direction_z);
-		const __m128 b = _mm_dot_ps(
-			direction_x, direction_y, direction_z,
-			oc_x, oc_y, oc_z);
-		const __m128 c = _mm_sub_ps(_mm_dot_ps(oc_x,oc_y,oc_z, oc_x,oc_y,oc_z), _mm_square_ps(radius));
-		
-		const __m128 det = _mm_sub_ps(_mm_square_ps(b), _mm_mul_ps(a, c));
-		
-		const __m128 t_0 = _mm_div_ps(_mm_add_ps(_mm_neg_ps(b), _mm_sqrt_ps(det)), a);
-		const __m128 t_1 = _mm_div_ps(_mm_sub_ps(_mm_neg_ps(b), _mm_sqrt_ps(det)), a);
-		const __m128 min_t = _mm_min_ps(t_0, t_1);
-		const __m128 cmp = _mm_or_ps(_mm_cmpgt_ps(det, eps), _mm_cmplt_ps(det, _mm_neg_ps(eps)));
-		
-		const __m128 t = _mm_or_ps(_mm_and_ps(cmp, min_t), _mm_andnot_ps(cmp, zero));
-		_mm_store_ps(values + i, t);
-	}
-	i32 smallest_index = -1;
-	f32 smallest_t = INFINITY;
-	for (u32 i = 0; i < list->used; i++)
-	{
-		const f32 t = values[i];
-		if ((t != 0.f) && (t > t_min) && (t < t_max) && (t < smallest_t))
-		{
-			smallest_t = t;
-			smallest_index = i;
-		};
-	};
-	if (smallest_index != -1)
-	{
-		const v3 position = ray_point(ray, smallest_t);
-		const v3 center = V3(
-			list->center_x[smallest_index],
-			list->center_y[smallest_index],
-			list->center_z[smallest_index]);
-		const v3 normal = v3_norm(v3_sub(position, center));
-
-		hit->t = smallest_t;
-		hit->normal = normal;
-		hit->position = position;
-		hit->material = list->material[smallest_index];
-		return true;
-	}
-	return false;
-};
-static void build_sphere_list(sphere_list_t *list, const bvh_t *bvh, ray_t ray, f32 t_min, f32 t_max)
-{
-	if (aabb_hit(bvh->aabb, ray, t_min, t_max))
-	{
-		if (bvh->leaf)
-		{
-			assert((list->used+1) < list->size);
-			const u32 index = list->used++;
-
-			list->center_x[index] = bvh->sphere->center.x;
-			list->center_y[index] = bvh->sphere->center.y;
-			list->center_z[index] = bvh->sphere->center.z;
-			list->radius[index] = bvh->sphere->radius;
-			list->material[index] = bvh->sphere->material;
-		} else {
-			build_sphere_list(list, bvh->l, ray, t_min, t_max);
-			build_sphere_list(list, bvh->r, ray, t_min, t_max);
-		}
-	};
-};
-bool world_hit(lin_alloc_t *temp_alloc,
-	const world_t *world, ray_t ray, f32 t_min, f32 t_max, hit_t *hit)
-{
-	bool result = false;
-
-	sphere_list_t list;
-	list.used = 0;
-	list.size = 128;
-	list.radius   = lin_alloc_push(temp_alloc, list.size*sizeof(f32), 16);
-	list.center_x = lin_alloc_push(temp_alloc, list.size*sizeof(f32), 16);
-	list.center_y = lin_alloc_push(temp_alloc, list.size*sizeof(f32), 16);
-	list.center_z = lin_alloc_push(temp_alloc, list.size*sizeof(f32), 16);
-	list.material = lin_alloc_push(temp_alloc, list.size*sizeof(material_t), 0);
-
-	build_sphere_list(&list, world->bvh, ray, t_min, t_max);
-	
-	if (list.used > 0)
-	{
-		result = sphere_list_hit(temp_alloc, &list, ray, t_min, t_max, hit);
-	};
-	lin_alloc_reset(temp_alloc);
-	return result;
-};
-#endif
 
 camera_t look_at(
 	v3 position, v3 at, v3 up, 
