@@ -8,7 +8,8 @@
 #include "image.h"
 #include "world.h"
 
-void render(const world_t *world, 
+void render(lin_alloc_t *temp_alloc,
+	const world_t *world, 
 	const camera_t *camera, 
 	i32 samples, i32 bounces,
 	image_t *image, rect_t area);

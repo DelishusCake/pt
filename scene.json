@@ -11,7 +11,7 @@
 		"samples": 128, 
 		"bounces": 16,
 		"tiles": [16, 9],
-		"background": [ 0.8, 1.0, 1.0],
+		"background": [ 0.99, 0.99, 0.99],
 	},
 
 	"camera": 
@@ -37,7 +37,6 @@
 		"radius": 0.25,
 
 		"albedo": [0.1, 0.3, 0.99],
-		"emittance": [0.1, 0.3, 1.5],
 		"material_type": "lambertian",
 	},
 	"sphere":

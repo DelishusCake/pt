@@ -14,15 +14,21 @@
 #define USE_TILES 1
 
 #if USE_TILES
-#define MAX_TILES	1024
+#define MAX_TILES			1024
+#define TILE_MEMORY_SIZE	kilobytes(16)
 
+typedef struct
+{
+	rect_t area;
+	lin_alloc_t temp_alloc;
+} render_tile_t;
 typedef struct
 {
 	scene_t *scene;
 	image_t *image;
 
 	u32 tile_count;
-	rect_t tiles[MAX_TILES];
+	render_tile_t tiles[MAX_TILES];
 	
 	volatile u32 next_tile;
 	volatile u32 completed;
@@ -34,13 +40,14 @@ static bool render_tile(render_queue_t *queue)
 	{
 		const u32 index = atomic_inc(&queue->next_tile);
 
-		rect_t tile = queue->tiles[index];
-		render(
+		rect_t area = queue->tiles[index].area;
+		lin_alloc_t *temp_alloc = &queue->tiles[index].temp_alloc;
+		render(temp_alloc,
 			&queue->scene->world, 
 			&queue->scene->camera,
 			queue->scene->samples, 
 			queue->scene->bounces, 
-			queue->image, tile);
+			queue->image, area);
 
 		atomic_inc(&queue->completed);
 		return true;
@@ -71,11 +78,17 @@ static void render_tiles(scene_t *scene, image_t *image, u32 worker_count)
 	{
 		for (u32 i = 0; i < scene->tiles_x; i++)
 		{
-			rect_t tile;
-			tile.x = i*tile_w;
-			tile.y = j*tile_h;
-			tile.w = tile_w;
-			tile.h = tile_h;
+			render_tile_t tile;
+
+			tile.area.x = i*tile_w;
+			tile.area.y = j*tile_h;
+			tile.area.w = tile_w;
+			tile.area.h = tile_h;
+
+			void *memory = malloc(TILE_MEMORY_SIZE);
+			assert(memory != NULL);
+
+			lin_alloc_init(&tile.temp_alloc, TILE_MEMORY_SIZE, memory);
 
 			queue->tiles[queue->tile_count++] = tile;
 		};
@@ -93,6 +106,11 @@ static void render_tiles(scene_t *scene, image_t *image, u32 worker_count)
 	while (queue->completed < queue->tile_count)
 		_mm_pause();
 
+	for (u32 i = 0; i < queue->tile_count; i++)
+	{
+		render_tile_t *tile = queue->tiles + i;
+		free(tile->temp_alloc.memory);
+	}
 	free(queue);
 };
 #endif

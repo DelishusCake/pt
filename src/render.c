@@ -94,7 +94,7 @@ static bool scatter(ray_t ray, const hit_t *hit,
 	return false;
 }
 
-static v3 sample(const world_t *world, ray_t ray, i32 bounces)
+static v3 sample(lin_alloc_t *temp_alloc, const world_t *world, ray_t ray, i32 bounces)
 {
 	const f32 min_t = 0.01f;
 	const f32 max_t = FLT_MAX;
@@ -105,7 +105,7 @@ static v3 sample(const world_t *world, ray_t ray, i32 bounces)
 	for (u32 i = 0; i < bounces; i++)
 	{
 		hit_t hit;
-		if (!world_hit(world, ray, min_t, max_t, &hit))
+		if (!world_hit(temp_alloc, world, ray, min_t, max_t, &hit))
 		{
 			color = v3_add(color, v3_mul(acc, world->background));
 			break;
@@ -132,7 +132,7 @@ static inline u32 srgb(v3 color)
 	const u8 b = (u32)(f32_pow(f32_saturate(color.b), exp) * 255.f + 0.5f) & 0xFF;
 	return (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
 };
-void render(
+void render(lin_alloc_t *temp_alloc,
 	const world_t *world, 
 	const camera_t *camera, 
 	i32 samples, i32 bounces,
@@ -154,7 +154,7 @@ void render(
 
 				ray_t ray = camera_ray(camera, u,v);
 
-				color = v3_add(color, sample(world, ray, bounces));
+				color = v3_add(color, sample(temp_alloc, world, ray, bounces));
 			}
 			color = v3_scale(color, (1.f / (f32) samples));
 

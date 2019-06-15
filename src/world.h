@@ -68,8 +68,8 @@ typedef struct
 	material_t material;
 } hit_t;
 
-bool world_hit(const world_t *world, ray_t ray,
-	f32 min_t, f32 max_t, hit_t *hit);
+bool world_hit(lin_alloc_t *temp_alloc,
+	const world_t *world, ray_t ray, f32 t_min, f32 t_max, hit_t *hit);
 
 typedef struct
 {

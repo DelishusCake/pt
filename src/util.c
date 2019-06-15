@@ -1,5 +1,12 @@
 #include "util.h"
 
+static inline size_t alignment_padding(size_t base, size_t alignment)
+{
+	const size_t mult = (base / alignment) + 1;
+	const size_t aligned = (mult * alignment);
+	return aligned - base;
+};
+
 f32 f32_rand()
 {
 	return ((f32) rand()/(f32) (RAND_MAX));
@@ -59,13 +66,16 @@ void lin_alloc_reset(lin_alloc_t *lin_alloc)
 {
 	lin_alloc->used = 0;
 };
-void* lin_alloc_push(lin_alloc_t *lin_alloc, size_t size)
+void* lin_alloc_push(lin_alloc_t *lin_alloc, size_t size, size_t align)
 {
 	void *ptr = NULL;
-	if ((lin_alloc->used + size) < lin_alloc->size)
+
+	const size_t current = (size_t) (lin_alloc->memory + lin_alloc->used);
+	const size_t padding = (align != 0) ? alignment_padding(current, align) : 0;
+	if ((lin_alloc->used + padding + size) < lin_alloc->size)
 	{
-		ptr = (uint8_t*) lin_alloc->memory + lin_alloc->used;
-		lin_alloc->used += size;
+		ptr = lin_alloc->memory + lin_alloc->used + padding;
+		lin_alloc->used += (padding + size);
 	}
 	return ptr;
 };
