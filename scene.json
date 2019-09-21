@@ -8,10 +8,10 @@
 	
 	"render":
 	{
-		"samples": 128, 
-		"bounces": 16,
+		"samples": 32, 
+		"bounces": 4,
 		"tiles": [16, 9],
-		"background": [ 0.99, 0.99, 0.99],
+		"background": [ 0.3, 0.3, 0.3],
 	},
 
 	"camera": 
@@ -41,10 +41,44 @@
 	},
 	"sphere":
 	{
+		"center": [2.0, 0.25, -1.0],
+		"radius": 0.25,
+
+		"albedo": [0.99, 0.3, 0.99],
+		"emittance": [5.99, 5.99, 5.99],
+		"material_type": "lambertian",
+	},
+	"sphere":
+	{
+		"center": [2.25, 0.0, -1.75],
+		"radius": 0.5,
+
+		"albedo": [0.1, 0.99, 0.2],
+		"material_type": "lambertian",
+	},
+	"sphere":
+	{
+		"center": [0.5, 0.3, -0.7],
+		"radius": 0.15,
+
+		"albedo": [0.99, 0.99, 0.99],
+		"refractivity": 1.5,
+		"material_type": "dielectric",
+	},
+	"sphere":
+	{
+		"center": [-0.25, 0.3, -0.7],
+		"radius": 0.15,
+
+		"albedo": [0.7, 0.8, 0.99],
+		"material_type": "lambertian",
+	},
+	"sphere":
+	{
 		"center": [-0.05, -0.04, -0.35],
 		"radius": 0.1,
 
-		"albedo": [0.99, 0.99, 0.99],
+		"albedo": [0.3, 0.99, 0.8],
 		"refractivity": 1.5,
 		"material_type": "dielectric",
 	},
@@ -57,7 +91,6 @@
 		"albedo": [0.89, 0.89, 0.89],
 		"material_type": "metal",
 	},
-
 	"sphere":
 	{
 		"center": [0.0, 100.5, -1.0],

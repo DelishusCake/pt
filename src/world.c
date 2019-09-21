@@ -143,7 +143,24 @@ bool world_hit(lin_alloc_t *temp_alloc,
 	const world_t *world, ray_t ray,
 	f32 t_min, f32 t_max, hit_t *hit)
 {
-	return bvh_hit(world->bvh, ray, t_min, t_max, hit);
+	hit->t = INFINITY;
+	
+	#if USE_BVH
+		return bvh_hit(world->bvh, ray, t_min, t_max, hit);
+	#else
+		bool result = false;
+		for (u32 i = 0; i < world->sphere_count; i++)
+		{
+			hit_t tmp_hit;
+			if (sphere_hit(world->spheres + i, ray, t_min, t_max, &tmp_hit))
+			{
+				result = true;
+				if (tmp_hit.t < hit->t)
+					*hit = tmp_hit;
+			}
+		};
+		return result;
+	#endif
 };
 
 camera_t look_at(

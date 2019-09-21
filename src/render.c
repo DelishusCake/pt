@@ -83,12 +83,9 @@ static bool scatter(ray_t ray, const hit_t *hit,
 {
 	switch (hit->material.type)
 	{
-		case MATERIAL_METAL:
-			return scatter_metal(ray, hit, attenuation, new_ray);
-		case MATERIAL_LAMBERTIAN:
-			return scatter_lambertian(ray, hit, attenuation, new_ray);
-		case MATERIAL_DIELECTRIC:
-			return scatter_dielectric(ray, hit, attenuation, new_ray);
+		case MATERIAL_METAL:		return scatter_metal(ray, hit, attenuation, new_ray);
+		case MATERIAL_LAMBERTIAN:	return scatter_lambertian(ray, hit, attenuation, new_ray);
+		case MATERIAL_DIELECTRIC:	return scatter_dielectric(ray, hit, attenuation, new_ray);
 		default: break;
 	}
 	return false;

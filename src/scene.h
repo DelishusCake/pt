@@ -8,17 +8,18 @@
 
 typedef struct
 {
-	// Image 
+	// Image data
 	i32 w, h;
 	char output[512];
-	// Render 
+	// Render data
 	i32 samples, bounces;
 	i32 tiles_x, tiles_y;
-	// World
+	// World data
 	world_t world;
 	camera_t camera;
 } scene_t;
 
+// Load a scene from a JSON file
 scene_t* scene_load(const char *file_name);
 
 #endif
