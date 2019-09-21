@@ -1,5 +1,6 @@
 #include "world.h"
 
+// Get the AABB for a sphere
 aabb_t sphere_aabb(v3 center, f32 radius)
 {
 	aabb_t aabb;
@@ -26,10 +27,12 @@ static int bvh_compare_z(const void *a, const void *b)
 	const sphere_t *sphere_b = *(sphere_t**) b;
 	return ((sphere_a->aabb.min.z - sphere_b->aabb.min.z) < 0.f) ? -1 : 1;
 };
+// Build a BVH recursively, based on a list of spheres
 static bvh_t* build_bvh(sphere_t **spheres, u32 sphere_count)
 {
 	if (sphere_count > 2)
 	{
+		// Sort spheres along a random axis
 		const u32 axis = u32_rand(0, 2);
 		switch (axis)
 		{
@@ -39,20 +42,24 @@ static bvh_t* build_bvh(sphere_t **spheres, u32 sphere_count)
 		}
 	}
 
+	// Allocate a new BVH node
 	bvh_t *bvh = malloc(sizeof(bvh_t));
 	assert(bvh != NULL);
 	memset(bvh, 0, sizeof(bvh_t));
+	// If theres only one sphere left, it's a leaf
 	if (sphere_count == 1)
 	{
 		bvh->leaf = true;
 		bvh->aabb = spheres[0]->aabb;
 		bvh->sphere = spheres[0];
+	// If theres exactly two spheres left, they become leaves
 	} else if (sphere_count == 2) {
 		bvh->leaf = false;
 		bvh->l = build_bvh(spheres + 0, 1);
 		bvh->r = build_bvh(spheres + 1, 1);
 		bvh->aabb = aabb_combine(bvh->l->aabb, bvh->r->aabb);
 	} else {
+		// Otherwise divide the list in half, create BVH trees for both sides
 		const u32 half = (sphere_count / 2);
 
 		bvh->leaf = false;
@@ -64,16 +71,19 @@ static bvh_t* build_bvh(sphere_t **spheres, u32 sphere_count)
 };
 void world_build_bvh(world_t *world)
 {
+	// Allocate a new sphere list for the BVH building routine to modify
 	sphere_t **spheres = malloc(world->sphere_count*sizeof(sphere_t*));
 	assert(spheres != NULL);
+	// Add all the spheres to it
 	for (u32 i = 0; i < world->sphere_count; i++)
 		spheres[i] = (world->spheres + i);
-
+	// Build the world BVH
 	world->bvh = build_bvh(spheres, world->sphere_count);
-	
+	// Free the temp sphere list
 	free(spheres);
 };
 
+// Hit test a sphere against a ray
 static bool sphere_hit(const sphere_t *sphere, ray_t ray, 
 	f32 t_min, f32 t_max, hit_t *hit)
 {
@@ -106,10 +116,13 @@ static bool sphere_hit(const sphere_t *sphere, ray_t ray,
 static bool bvh_hit(const bvh_t *bvh, ray_t ray, 
 	f32 t_min, f32 t_max, hit_t *hit)
 {
+	// If the ray intersects with this BVH node
 	if (aabb_hit(bvh->aabb, ray, t_min, t_max))
 	{
+		// If this is a leaf
 		if (bvh->leaf)
 		{
+			// Test the shape, return true if it hit
 			hit_t data;
 			if (sphere_hit(bvh->sphere, ray, t_min, t_max, &data))
 			{
@@ -117,9 +130,11 @@ static bool bvh_hit(const bvh_t *bvh, ray_t ray,
 				return true;
 			};
 		} else {
+			// Test both children
 			hit_t l_data, r_data;
 			const bool hit_l = bvh_hit(bvh->l, ray, t_min, t_max, &l_data);
 			const bool hit_r = bvh_hit(bvh->r, ray, t_min, t_max, &r_data);
+			// Return whichever hits closer
 			if (hit_l && hit_r)
 			{
 				*hit = (l_data.t < r_data.t) ? l_data : r_data;
@@ -137,17 +152,21 @@ static bool bvh_hit(const bvh_t *bvh, ray_t ray,
 			}
 		}
 	};
+	// No hit
 	return false;
 };
 bool world_hit(lin_alloc_t *temp_alloc, 
 	const world_t *world, ray_t ray,
 	f32 t_min, f32 t_max, hit_t *hit)
 {
+	// By default, non-hits have an infinite distance
 	hit->t = INFINITY;
 	
 	#if USE_BVH
+		// Test the BVH tree
 		return bvh_hit(world->bvh, ray, t_min, t_max, hit);
 	#else
+		// Test against every sphere in the list
 		bool result = false;
 		for (u32 i = 0; i < world->sphere_count; i++)
 		{
