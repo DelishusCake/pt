@@ -69,6 +69,7 @@ typedef double f64;
 #define heap_left(i)	((i << 1) + 1)
 #define heap_right(i)	((i << 1) + 2)
 
+// TODO: Implement these as intrinsics
 inline f32 f32_ceil(f32 v)        { return ceilf(v); };
 inline f32 f32_floor(f32 v)       { return floorf(v); };
 inline f32 f32_round(f32 v)       { return roundf(v); };

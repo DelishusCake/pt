@@ -5,7 +5,7 @@ inc_dir := include/
 
 bin := pt.exe
 def := DEBUG
-opt := -Wall -std=c11 -c -O3 -msse2 
+opt := -Wall -std=c11 -c -O2 -msse2 
 lib :=
 
 out/%.o: src/%.c

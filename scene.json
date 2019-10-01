@@ -8,10 +8,10 @@
 	
 	"render":
 	{
-		"samples": 64, 
-		"bounces": 8,
+		"samples": 128, 
+		"bounces": 50,
 		"tiles": [16, 9],
-		"background": [ 0.3, 0.3, 0.3],
+		"background": [ 0.9, 0.9, 0.9],
 	},
 
 	"camera": 

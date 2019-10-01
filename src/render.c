@@ -124,10 +124,11 @@ static v3 sample(lin_alloc_t *temp_alloc, const world_t *world, ray_t ray, i32 b
 static inline u32 srgb(v3 color)
 {
 	const f32 exp = (1.f/2.2f);
+	const u8 a = 0xFF;
 	const u8 r = (u32)(f32_pow(f32_saturate(color.r), exp) * 255.f + 0.5f) & 0xFF;
 	const u8 g = (u32)(f32_pow(f32_saturate(color.g), exp) * 255.f + 0.5f) & 0xFF;
 	const u8 b = (u32)(f32_pow(f32_saturate(color.b), exp) * 255.f + 0.5f) & 0xFF;
-	return (0xFF << 24) | (b << 16) | (g << 8) | (r << 0);
+	return (a << 24) | (b << 16) | (g << 8) | (r << 0);
 };
 void render(lin_alloc_t *temp_alloc,
 	const world_t *world, 
@@ -135,28 +136,36 @@ void render(lin_alloc_t *temp_alloc,
 	i32 samples, i32 bounces,
 	image_t *image, rect_t area)
 {
+	// Get a pointer to the begining of the render area
 	u8 *row = (image->pixels + 
 		(area.x*image->bpp) + 
 		(area.y*image->stride));
+	// For each row of the area to render
 	for (u32 j = area.y; j < (area.y+area.h); j++)
 	{
+		// Iterate over each pixel
 		u32 *pixel = (u32*) row;
 		for (u32 i = area.x; i < (area.x+area.w); i++)
 		{
+			// Final output color in RGB space
 			v3 color = V3(0.f, 0.f, 0.f);
+			// For each sample
 			for (u32 s = 0; s < samples; s++)
 			{
+				// Get the current UV of this sample
 				const f32 u = (((f32) i + f32_rand()) / (f32) image->width);
 				const f32 v = (((f32) j + f32_rand()) / (f32) image->height);
-
+				// Generate a ray from the camera to the sample
 				ray_t ray = camera_ray(camera, u,v);
-
+				// Generate a sample and add it to the color
 				color = v3_add(color, sample(temp_alloc, world, ray, bounces));
 			}
+			// Normalize the output color by the number of samples
 			color = v3_scale(color, (1.f / (f32) samples));
-
+			// Store the pixel in srgb space
 			*pixel++ = srgb(color);
 		}
+		// Iterate to the next row
 		row += image->stride;
 	};
 };

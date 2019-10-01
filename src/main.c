@@ -192,6 +192,6 @@ int main(int argc, const char *argv[])
 		// Cleanup
 		image_free(&image);
 		free(scene);
-	}
+	} else printf("Failed to load scene \"%s\"", argv[1]);
 	return 0;
 }
