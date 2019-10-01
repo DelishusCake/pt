@@ -36,7 +36,7 @@ typedef struct
 {
 	// Input and output pointers
 	scene_t *scene;
-	image_t *image;
+	framebuffer_t *framebuffer;
 	// Total number of tiles to render
 	u32 tile_count;
 	// Tile array
@@ -65,7 +65,7 @@ static bool render_tile(render_queue_t *queue)
 			&queue->scene->camera,
 			queue->scene->samples, 
 			queue->scene->bounces, 
-			queue->image, area);
+			queue->framebuffer, area);
 		// Increment the completed count atomically
 		atomic_inc(&queue->completed);
 		return true;
@@ -80,13 +80,13 @@ static DWORD WINAPI thread_proc(void *data)
 	// Exit the thread when no more work is available to be done
 	return 0;
 };
-static void render_tiles(scene_t *scene, image_t *image, u32 worker_count)
+static void render_tiles(scene_t *scene, framebuffer_t *framebuffer, u32 worker_count)
 {
 	// Make sure the scene fits in the render queue
 	assert((scene->tiles_x*scene->tiles_y) <= MAX_TILES);
 	// Get the dimensions of a tile in pixels
-	const u32 tile_w = image->width / scene->tiles_x;
-	const u32 tile_h = image->height / scene->tiles_y;
+	const u32 tile_w = framebuffer->width / scene->tiles_x;
+	const u32 tile_h = framebuffer->height / scene->tiles_y;
 	// Allocate a render queue
 	// NOTE: Needs to be heap allocated for thread safety
 	render_queue_t *queue = malloc(sizeof(render_queue_t));
@@ -94,7 +94,7 @@ static void render_tiles(scene_t *scene, image_t *image, u32 worker_count)
 	memset(queue, 0, sizeof(render_queue_t));
 	// Set the queue input/output data pointers
 	queue->scene = scene;
-	queue->image = image;
+	queue->framebuffer = framebuffer;
 	// Set up each tile in the queue
 	for (u32 j = 0; j < scene->tiles_y; j++)
 	{
@@ -138,6 +138,36 @@ static void render_tiles(scene_t *scene, image_t *image, u32 worker_count)
 };
 #endif
 
+static inline u32 srgb(v3 color)
+{
+	const f32 exp = (1.f/2.2f);
+	const u8 a = 0xFF;
+	const u8 r = (u32)(f32_pow(f32_saturate(color.r), exp) * 255.f + 0.5f) & 0xFF;
+	const u8 g = (u32)(f32_pow(f32_saturate(color.g), exp) * 255.f + 0.5f) & 0xFF;
+	const u8 b = (u32)(f32_pow(f32_saturate(color.b), exp) * 255.f + 0.5f) & 0xFF;
+	return (a << 24) | (b << 16) | (g << 8) | (r << 0);
+};
+static void framebuffer_store(image_t *image, const framebuffer_t *framebuffer)
+{
+	// Get a pointer to the begining of the render area
+	u8 *row = image->pixels;
+	// For each row of the area to render
+	for (u32 j = 0; j < image->height; j++)
+	{
+		// Iterate over each pixel
+		u32 *pixel = (u32*) row;
+		for (u32 i = 0; i < image->width; i++)
+		{
+			// Get the color
+			const v3 color = framebuffer->pixels[j*framebuffer->width + i];
+			// Store the pixel in srgb space
+			*pixel++ = srgb(color);
+		}
+		// Iterate to the next row
+		row += image->stride;
+	};
+};
+
 int main(int argc, const char *argv[])
 {
 	// Not enough command line arguments, early out with help message
@@ -162,34 +192,40 @@ int main(int argc, const char *argv[])
 		world_build_bvh(&scene->world);
 		printf("done\n");
 
-		// Allocate an output image
-		image_t image;
-		image_alloc(&image, scene->w, scene->h);
+		framebuffer_t framebuffer;
+		framebuffer_alloc(&framebuffer, scene->w, scene->h);
 
 		// Begin rendering
 		printf("Rendering...");
 		const clock_t start = clock();
 		#if USE_TILES
 			// Render using tile-based parallel method
-			render_tiles(scene, &image, 8);
+			render_tiles(scene, &framebuffer, 8);
 		#else
 			// Render using a single core method
 			// NOTE: Only use this as a benchmark!
-			rect_t area = { 0,0,image.width,image.height};
+			rect_t area = { 0,0,framebuffer.width,framebuffer.height};
 			render(
 				&scene->world, 
 				&scene->camera,
 				scene->samples, 
 				scene->bounces, 
-				&image, area);
+				&framebuffer, area);
 		#endif
 		// Output render time
 		const clock_t end = clock();
 		const double time = (double) (end - start) / CLOCKS_PER_SEC;
 		printf("done\nRender took %f seconds\n", time);
+
+		// Allocate an output image
+		image_t image;
+		image_alloc(&image, scene->w, scene->h);
+		// Store the framebuffer to the image
+		framebuffer_store(&image, &framebuffer);
 		// Save the image to disk
 		image_save(&image, scene->output);
 		// Cleanup
+		framebuffer_free(&framebuffer);
 		image_free(&image);
 		free(scene);
 	} else printf("Failed to load scene \"%s\"", argv[1]);
