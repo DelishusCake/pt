@@ -9,7 +9,7 @@
 	"render":
 	{
 		"samples": 128, 
-		"bounces": 10,
+		"bounces": 16,
 		"tiles": [16, 9],
 		"background": [ 0.8, 0.8, 0.8 ],
 	},

@@ -1,7 +1,7 @@
 // Should tile-based rendering be used?
 #define USE_TILES 1
 // Should a BVH be used?
-#define USE_BVH   0
+#define USE_BVH   1
 
 #include "core.h"
 #include "util.h"
@@ -168,6 +168,66 @@ static void framebuffer_store(image_t *image, const framebuffer_t *framebuffer)
 	};
 };
 
+#if 1
+static void framebuffer_filter(image_t *image, const framebuffer_t *framebuffer)
+{
+	const i32 kernelSize = 3;
+	const f32 id = 5000.f;
+	const f32 cd = 2.f;
+
+	u8 *row = image->pixels;
+	for (u32 y = 0; y < framebuffer->height; y++)
+	{
+		// Iterate over each pixel
+		u32 *pixel = (u32*) row;
+		for (u32 x = 0; x < framebuffer->width; x++)
+		{
+			// Get the color
+			const v3 color = framebuffer->pixels[y*framebuffer->width + x];
+
+			i32 k_min_x = x - kernelSize;
+			i32 k_min_y = y - kernelSize;
+
+			i32 k_max_x = x + kernelSize;
+			i32 k_max_y = y + kernelSize;
+
+			f32 s_weight = 0.f;
+			v3 s_color = V3(0.f, 0.f, 0.f);
+			for (u32 j = k_min_y; j <= k_max_y; j++)
+			{
+				for (u32 i = k_min_x; i <= k_max_x; i++)
+				{
+					const i32 n_x = clamp(i, 0, (framebuffer->width-1));
+					const i32 n_y = clamp(j, 0, (framebuffer->height-1));
+
+					const v3 n_color = framebuffer->pixels[n_y*framebuffer->width + n_x];
+
+					f32 image_dist = f32_sqrt((f32) ((i-x)*(i-x)) + (f32) ((j-y)*(j-y)));
+					f32 color_dist = f32_sqrt((f32) (
+						((color.r - n_color.r)*(color.r - n_color.r)) +
+						((color.g - n_color.g)*(color.g - n_color.g)) +
+						((color.b - n_color.b)*(color.b - n_color.b))));
+					f32 weight = 1.f / (f32_exp((image_dist/id)*(image_dist/id)*0.5f) * f32_exp((color_dist/cd)*(color_dist/cd)*0.5f));
+					s_weight += weight;
+
+					s_color.r += weight*color.r;
+					s_color.g += weight*color.g;
+					s_color.b += weight*color.b;
+				}
+			}
+			s_color.r *= (1.f / s_weight);
+			s_color.g *= (1.f / s_weight);
+			s_color.b *= (1.f / s_weight);
+
+			// Store the pixel in srgb space
+			*pixel++ = srgb(s_color);
+		}
+		// Iterate to the next row
+		row += image->stride;
+	};
+};
+#endif
+
 int main(int argc, const char *argv[])
 {
 	// Not enough command line arguments, early out with help message
@@ -179,6 +239,7 @@ int main(int argc, const char *argv[])
 	// Seed the RNG
 	// TODO: Implement better, faster RNG
 	srand(time(NULL));
+
 
 	// Load the scene from a JSON file
 	printf("Loading scene...");
@@ -194,35 +255,44 @@ int main(int argc, const char *argv[])
 
 		framebuffer_t framebuffer;
 		framebuffer_alloc(&framebuffer, scene->w, scene->h);
-
+		
 		// Begin rendering
 		printf("Rendering...");
-		const clock_t start = clock();
-		#if USE_TILES
-			// Render using tile-based parallel method
-			render_tiles(scene, &framebuffer, 8);
-		#else
-			// Render using a single core method
-			// NOTE: Only use this as a benchmark!
-			rect_t area = { 0,0,framebuffer.width,framebuffer.height};
-			render(
-				&scene->world, 
-				&scene->camera,
-				scene->samples, 
-				scene->bounces, 
-				&framebuffer, area);
-		#endif
-		// Output render time
-		const clock_t end = clock();
-		const double time = (double) (end - start) / CLOCKS_PER_SEC;
-		printf("done\nRender took %f seconds\n", time);
+		{
+			const clock_t start = clock();
+			#if USE_TILES
+				// Render using tile-based parallel method
+				render_tiles(scene, &framebuffer, 8);
+			#else
+				// Render using a single core method
+				// NOTE: Only use this as a benchmark!
+				rect_t area = { 0,0,framebuffer.width,framebuffer.height};
+				render(
+					&scene->world, 
+					&scene->camera,
+					scene->samples, 
+					scene->bounces, 
+					&framebuffer, area);
+			#endif
+			// Output render time
+			const clock_t end = clock();
+			const double time = (double) (end - start) / CLOCKS_PER_SEC;
+			printf("done\nRender took %f seconds\n", time);
+		}
 
 		// Allocate an output image
 		image_t image;
 		image_alloc(&image, scene->w, scene->h);
 		// Store the framebuffer to the image
-		framebuffer_store(&image, &framebuffer);
-		// Save the image to disk
+		printf("Storing framebuffer...");
+		{
+			const clock_t start = clock();
+			framebuffer_store(&image, &framebuffer);
+			// framebuffer_filter(&image, &framebuffer);
+			const clock_t end = clock();
+			const double time = (double) (end - start) / CLOCKS_PER_SEC;
+			printf("done\nStore took %f seconds\n", time);
+		}
 		image_save(&image, scene->output);
 		// Cleanup
 		framebuffer_free(&framebuffer);

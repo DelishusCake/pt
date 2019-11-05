@@ -5,7 +5,6 @@
 #include "util.h"
 #include "geom.h"
 
-#include "image.h"
 #include "world.h"
 
 typedef struct

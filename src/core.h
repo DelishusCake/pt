@@ -69,11 +69,15 @@ typedef double f64;
 #define heap_left(i)	((i << 1) + 1)
 #define heap_right(i)	((i << 1) + 2)
 
+#define align_16 __attribute__((aligned(16)))
+#define nearest4(v)	(((v) + 3) & ~0x03)
+
 // TODO: Implement these as intrinsics
 inline f32 f32_ceil(f32 v)        { return ceilf(v); };
 inline f32 f32_floor(f32 v)       { return floorf(v); };
 inline f32 f32_round(f32 v)       { return roundf(v); };
 
+inline f32 f32_exp(f32 v)         { return expf(v); };
 inline f32 f32_abs(f32 v)         { return fabsf(v); };
 inline f32 f32_sqrt(f32 v)        { return sqrtf(v); };
 inline f32 f32_pow(f32 v, f32 p)  { return powf(v, p); };
@@ -86,6 +90,17 @@ inline f32 f32_tan(f32 v)         { return tanf(v); }
 inline f32 f32_atan(f32 v)        { return atanf(v); }
 
 inline f32 f32_saturate(f32 v)    { return clamp(v, 0.f, 1.f); }
+
+inline __m128 _mm_neg_ps(__m128 v) { return _mm_sub_ps(_mm_set1_ps(0.f), v); }
+inline __m128 _mm_dot_ps(
+	__m128 a_x, __m128 a_y, __m128 a_z,
+	__m128 b_x, __m128 b_y, __m128 b_z)
+{
+	const __m128 x = _mm_mul_ps(a_x,b_x);
+	const __m128 y = _mm_mul_ps(a_y,b_y);
+	const __m128 z = _mm_mul_ps(a_z,b_z);
+	return _mm_add_ps(x, _mm_add_ps(y, z));
+};
 
 inline u32 atomic_inc(volatile u32 *value)
 {

@@ -7,6 +7,7 @@ void image_alloc(image_t *image, u32 width, u32 height)
 
 	u8 *pixels = malloc(size);
 	assert(pixels != NULL);
+	memset(pixels, 0, size);
 
 	image->bpp = bpp;
 	image->width = width;

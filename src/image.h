@@ -19,4 +19,11 @@ void image_free(image_t *image);
 
 void image_save(const image_t *image, const char *file_name);
 
+inline u32 image_get_pixel(const image_t *image, i32 x, i32 y)
+{
+	assert((x >= 0) && (x < image->width));
+	assert((y >= 0) && (y < image->height));
+	return *((u32*) (image->pixels + image->stride*y + image->bpp*x));
+};
+
 #endif
