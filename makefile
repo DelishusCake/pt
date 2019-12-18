@@ -5,13 +5,13 @@ inc_dir := include/
 
 bin := pt.exe
 def := DEBUG
-opt := -Wall -std=c11 -c -O2 -msse2 
+opt := -Wall -std=c11 -c -O2 -msse2
 lib :=
 
 out/%.o: src/%.c
 	gcc $(opt) $(def:%=-D%) $< -o $@ -I$(inc_dir)
 $(bin): $(out)
-	gcc $^ -o $@ $(lib:%=-l%)
+	gcc $^ -o $@ -pthread $(lib:%=-l%)
 clean:
 	rm out/*
 	rm $(bin)

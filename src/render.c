@@ -229,6 +229,16 @@ static void draw_aabb(m44 camera, aabb_t aabb, framebuffer_t *framebuffer)
 	const v3 color = V3(1.f, 0.f, 0.f);
 	{
 		const v4 min = clip(viewport, m44_transform(camera, V4(aabb.min.x, aabb.min.y, aabb.min.z, 1.f)));
+		const v4 max = clip(viewport, m44_transform(camera, V4(aabb.max.x, aabb.max.y, aabb.min.z, 1.f)));
+
+		draw_line(framebuffer, V2(min.x, min.y), V2(max.x, min.y), color);
+		draw_line(framebuffer, V2(max.x, min.y), V2(max.x, max.y), color);
+		draw_line(framebuffer, V2(max.x, max.y), V2(min.x, max.y), color);
+		draw_line(framebuffer, V2(min.x, max.y), V2(min.x, min.y), color);
+	}
+	#if 0
+	{
+		const v4 min = clip(viewport, m44_transform(camera, V4(aabb.min.x, aabb.min.y, aabb.max.z, 1.f)));
 		const v4 max = clip(viewport, m44_transform(camera, V4(aabb.max.x, aabb.max.y, aabb.max.z, 1.f)));
 
 		draw_line(framebuffer, V2(min.x, min.y), V2(max.x, min.y), color);
@@ -236,14 +246,16 @@ static void draw_aabb(m44 camera, aabb_t aabb, framebuffer_t *framebuffer)
 		draw_line(framebuffer, V2(max.x, max.y), V2(min.x, max.y), color);
 		draw_line(framebuffer, V2(min.x, max.y), V2(min.x, min.y), color);
 	}
+	#endif
 };
 static void draw_bvh_node(m44 camera, const bvh_t *bvh, framebuffer_t *framebuffer)
 {
-	draw_aabb(camera, bvh->aabb, framebuffer);
 	if (!bvh->leaf)
 	{
 		draw_bvh_node(camera, bvh->l, framebuffer);
 		draw_bvh_node(camera, bvh->r, framebuffer);
+	} else {
+		draw_aabb(camera, bvh->aabb, framebuffer);
 	}
 };
 void draw_bvh(const camera_t *camera, const bvh_t *bvh, framebuffer_t *framebuffer)

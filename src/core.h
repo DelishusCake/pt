@@ -84,12 +84,15 @@ inline f32 f32_pow(f32 v, f32 p)  { return powf(v, p); };
 inline f32 f32_isqrt(f32 v)       { return (1.f / sqrtf(v)); };
 inline f32 f32_square(f32 v)      { return v*v; };
 
+inline f32 f32_log2(f32 v)        { return log2f(v); };
+
 inline f32 f32_sin(f32 v)         { return sinf(v); }
 inline f32 f32_cos(f32 v)         { return cosf(v); }
 inline f32 f32_tan(f32 v)         { return tanf(v); }
 inline f32 f32_atan(f32 v)        { return atanf(v); }
 
 inline f32 f32_saturate(f32 v)    { return clamp(v, 0.f, 1.f); }
+inline f32 f32_lerp(f32 a, f32 b, f32 t) { return (a*t) + (b*(1.f-t)); }
 
 inline __m128 _mm_neg_ps(__m128 v) { return _mm_sub_ps(_mm_set1_ps(0.f), v); }
 inline __m128 _mm_dot_ps(

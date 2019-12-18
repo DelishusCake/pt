@@ -11,9 +11,7 @@
 #include "scene.h"
 #include "render.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
+#include <pthread.h>
 #include <time.h>
 
 #if USE_TILES
@@ -72,13 +70,13 @@ static bool render_tile(render_queue_t *queue)
 	}
 	return false;
 }
-static DWORD WINAPI thread_proc(void *data)
+static void* thread_proc(void *data)
 {
 	// Simple thread procedure to render tiles so long as some are available
-	render_queue_t *queue = (render_queue_t*)data;
+	render_queue_t *queue = (render_queue_t*) data;
 	while (render_tile(queue));
 	// Exit the thread when no more work is available to be done
-	return 0;
+	return NULL;
 };
 static void render_tiles(scene_t *scene, framebuffer_t *framebuffer, u32 worker_count)
 {
@@ -115,11 +113,11 @@ static void render_tiles(scene_t *scene, framebuffer_t *framebuffer, u32 worker_
 		};
 	};
 	// Create a bunch of worker threads, each running the rendering function 
-	for(u32 i = 0; i < (worker_count-1); i++)
+	const u32 thread_count = (worker_count-1);
+	for (u32 i = 0; i < thread_count; i++)
 	{
-		DWORD dwThreadID = 0;
-		HANDLE hThread = CreateThread(NULL, 0, thread_proc, queue, 0, &dwThreadID);
-		CloseHandle(hThread);
+		pthread_t thread;
+		pthread_create(&thread, NULL, thread_proc, queue);
 	}
 	// Keep doing jobs in the queue on the main thread too
 	while (render_tile(queue));
@@ -279,10 +277,12 @@ int main(int argc, const char *argv[])
 			printf("done\nRender took %f seconds\n", time);
 		}
 
+		#if 0
 		draw_bvh(
 			&scene->camera, 
 			scene->world.bvh,
 			&framebuffer);
+		#endif
 
 		// Allocate an output image
 		image_t image;

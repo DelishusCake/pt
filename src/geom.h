@@ -111,6 +111,10 @@ inline v3 v3_refl(v3 v, v3 n)
 {
 	return v3_sub(v, v3_scale(n, 2.f*v3_dot(v, n)));
 }
+inline v3 v3_lerp(v3 a, v3 b, f32 t)
+{
+	return v3_add(v3_scale(a, t), v3_scale(b, (1.f - t)));
+}
 
 /* V4 */
 inline v4 V4(f32 x, f32 y, f32 z, f32 w)
@@ -128,17 +132,10 @@ inline v4  v4_scale(v4 v, f32 s)	{ return V4(v.x*s, v.y*s, v.z*s, v.w*s); };
 inline v4 m44_transform(m44 m, v4 v)
 {
 	v4 r;
-	#if 1
-	r.x = m.x0*v.x + m.x1*v.y + m.x2*v.z + m.x3*1.f;
-	r.y = m.y0*v.x + m.y1*v.y + m.y2*v.z + m.y3*1.f;
-	r.z = m.z0*v.x + m.z1*v.y + m.z2*v.z + m.z3*1.f;
-	r.w = m.w0*v.x + m.w1*v.y + m.w2*v.z + m.w3*1.f;
-	#else
-	r.x = m.x0*v.x + m.y0*v.y + m.z0*v.z + m.w0*1.f;
-	r.y = m.x1*v.x + m.y1*v.y + m.z1*v.z + m.w1*1.f;
-	r.z = m.x2*v.x + m.y2*v.y + m.z2*v.z + m.w2*1.f;
-	r.w = m.x3*v.x + m.y3*v.y + m.z3*v.z + m.w3*1.f;
-	#endif
+	r.x = m.x0*v.x + m.x1*v.y + m.x2*v.z + m.x3*v.w;
+	r.y = m.y0*v.x + m.y1*v.y + m.y2*v.z + m.y3*v.w;
+	r.z = m.z0*v.x + m.z1*v.y + m.z2*v.z + m.z3*v.w;
+	r.w = m.w0*v.x + m.w1*v.y + m.w2*v.z + m.w3*v.w;
 	return r;
 };
 inline m44 m44_identity()
@@ -253,7 +250,7 @@ inline m44 m44_mul(m44 a, m44 b)
 	};
 	return out;
 };
-static m44 m44_viewport(i32 x, i32 y, i32 w, i32 h)
+static inline m44 m44_viewport(i32 x, i32 y, i32 w, i32 h)
 {
 	const i32 d = 255;
 	return (m44)
