@@ -29,4 +29,6 @@ void render(
 	// Output framebuffer and area to render
 	framebuffer_t *framebuffer, rect_t area);
 
+void draw_bvh(const camera_t *camera, const bvh_t *bvh, framebuffer_t *framebuffer);
+
 #endif

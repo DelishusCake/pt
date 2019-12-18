@@ -125,6 +125,22 @@ inline v4 V4(f32 x, f32 y, f32 z, f32 w)
 inline v4  v4_scale(v4 v, f32 s)	{ return V4(v.x*s, v.y*s, v.z*s, v.w*s); };
 
 /* M44 */
+inline v4 m44_transform(m44 m, v4 v)
+{
+	v4 r;
+	#if 1
+	r.x = m.x0*v.x + m.x1*v.y + m.x2*v.z + m.x3*1.f;
+	r.y = m.y0*v.x + m.y1*v.y + m.y2*v.z + m.y3*1.f;
+	r.z = m.z0*v.x + m.z1*v.y + m.z2*v.z + m.z3*1.f;
+	r.w = m.w0*v.x + m.w1*v.y + m.w2*v.z + m.w3*1.f;
+	#else
+	r.x = m.x0*v.x + m.y0*v.y + m.z0*v.z + m.w0*1.f;
+	r.y = m.x1*v.x + m.y1*v.y + m.z1*v.z + m.w1*1.f;
+	r.z = m.x2*v.x + m.y2*v.y + m.z2*v.z + m.w2*1.f;
+	r.w = m.x3*v.x + m.y3*v.y + m.z3*v.z + m.w3*1.f;
+	#endif
+	return r;
+};
 inline m44 m44_identity()
 {
 	return (m44)
@@ -167,6 +183,24 @@ inline m44 m44_translation(f32 x, f32 y, f32 z)
 		x,   y,   z,   1.f,
 	}};
 };
+inline m44 m44_lookAt(v3 eye, v3 at, v3 up)
+{
+	const v3 f = v3_norm(v3_sub(at, eye));
+	const v3 s = v3_norm(v3_cross(f, up));
+	const v3 u = v3_cross(s, f);
+
+	const f32 tx = -v3_dot(s, eye);
+	const f32 ty = -v3_dot(u, eye);
+	const f32 tz =  v3_dot(f, eye);
+
+	return (m44)
+	{{
+		s.x, u.x, -f.x, 0.f,
+		s.y, u.y, -f.y, 0.f,
+		s.z, u.z, -f.z, 0.f,
+		tx,  ty,   tz,  1.f,
+	}};
+};
 inline m44 m44_orthoOffCenter(f32 l, f32 r, f32 b, f32 t, f32 zn, f32 zf)
 {
 	const f32 sx = (2.f / (r-l));
@@ -185,6 +219,24 @@ inline m44 m44_orthoOffCenter(f32 l, f32 r, f32 b, f32 t, f32 zn, f32 zf)
 		tx,  ty,  tz, 1.f,
 	}};
 };
+inline m44 m44_perspective(f32 y_fov, f32 aspect, f32 zn, f32 zf)
+{
+	const f32 a = 1.f / f32_tan(y_fov / 2.f);
+
+	const f32 sx = a / aspect;
+	const f32 sy = a;
+	const f32 sz = -((zf + zn) / (zf-zn));
+
+	const f32 tz = -((2.f*zf*zn) / (zf-zn));
+
+	return (m44)
+	{{
+		sx, 0.f, 0.f,  0.f,
+		0.f, sy, 0.f,  0.f,
+		0.f, 0.f, sz, -1.f,
+		0.f, 0.f, tz,  0.f,
+	}};
+};
 inline m44 m44_mul(m44 a, m44 b)
 {
 	m44 out;
@@ -200,6 +252,17 @@ inline m44 m44_mul(m44 a, m44 b)
 		};
 	};
 	return out;
+};
+static m44 m44_viewport(i32 x, i32 y, i32 w, i32 h)
+{
+	const i32 d = 255;
+	return (m44)
+	{{
+		w/2, 0, 0, 0,
+		0, h/2, 0, 0,
+		0, 0, d/2, 0,
+		x+(w/2), y+(h/2), d/2, 1,
+	}};
 };
 
 inline ray_t ray(v3 origin, v3 direction)

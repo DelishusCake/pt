@@ -240,7 +240,6 @@ int main(int argc, const char *argv[])
 	// TODO: Implement better, faster RNG
 	srand(time(NULL));
 
-
 	// Load the scene from a JSON file
 	printf("Loading scene...");
 	scene_t *scene = scene_load(argv[1]);
@@ -279,6 +278,11 @@ int main(int argc, const char *argv[])
 			const double time = (double) (end - start) / CLOCKS_PER_SEC;
 			printf("done\nRender took %f seconds\n", time);
 		}
+
+		draw_bvh(
+			&scene->camera, 
+			scene->world.bvh,
+			&framebuffer);
 
 		// Allocate an output image
 		image_t image;

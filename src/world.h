@@ -107,9 +107,11 @@ typedef struct
 	// Lens space transformation matrix
 	v3 h, v, f;
 	// Camera world space position 
-	v3 position;
+	v3 position, at, up;
 	// Camera aperture radius
 	f32 aperture;
+	// Camera FOV
+	f32 fov;
 } camera_t;
 
 // Get the camera for a position

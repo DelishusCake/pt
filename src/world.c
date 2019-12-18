@@ -154,6 +154,7 @@ static bool sphere_list_hit(sphere_list_t *list, ray_t ray,
 	const __m128 direction_y = _mm_set_ps1(ray.direction.y);
 	const __m128 direction_z = _mm_set_ps1(ray.direction.z);
 	// The a term of the quadratic equation is constant for all spheres
+	// NOTE: The compiler can probably do this for us, but move it out of the loop anyway
 	// a = direction * direction
 	const __m128 a = _mm_dot_ps(
 		direction_x, direction_y, direction_z,
@@ -237,6 +238,7 @@ static void bvh_query(const bvh_t *bvh, ray_t ray,
 		// If this is a leaf
 		if (bvh->leaf)
 		{
+			assert((list->count + 1) < MAX_QUERY_LIST_SIZE);
 			// Get the Sphere pointer
 			sphere_t *sphere = bvh->sphere;
 			// Push the sphere data to the list
@@ -323,8 +325,11 @@ camera_t look_at(
 	camera.h = h;
 	camera.v = v;
 
+	camera.fov = fov;
 	camera.aperture = aperture;
 	camera.position = position;
+	camera.at = at;
+	camera.up = up;
 	return camera;
 };
 ray_t camera_ray(const camera_t *camera, f32 u, f32 v)

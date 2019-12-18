@@ -12,6 +12,14 @@ void framebuffer_free(framebuffer_t *framebuffer)
 {
 	free(framebuffer->pixels);
 };
+static inline void framebuffer_set(framebuffer_t *framebuffer, i32 x, i32 y, v3 color)
+{
+	if ((x >= 0) && (x < framebuffer->width) &&
+		(y >= 0) && (y < framebuffer->height))
+	{
+		framebuffer->pixels[y*framebuffer->width + x] = color;
+	}
+};
 
 static inline f32 schlick(f32 cos, f32 ref_idx)
 {
@@ -165,4 +173,86 @@ void render(lin_alloc_t *temp_alloc,
 			framebuffer->pixels[j*framebuffer->width + i] = color;
 		}
 	};
+};
+
+static void draw_line(framebuffer_t *framebuffer, v2 a, v2 b, v3 color)
+{
+	i32 x0 = a.x;
+	i32 y0 = a.y;
+
+	i32 x1 = b.x;
+	i32 y1 = b.y;
+
+	bool steep = false; 
+	if (abs(x0-x1) < abs(y0-y1))
+	{ 
+		swap(i32, x0, y0); 
+		swap(i32, x1, y1); 
+		steep = true; 
+	} 
+	if (x0 > x1)
+	{ 
+		swap(i32, x0, x1); 
+		swap(i32, y0, y1); 
+	} 
+
+	i32 dx = x1-x0; 
+	i32 dy = y1-y0; 
+	i32 derror2 = abs(dy)*2; 
+	i32 error2 = 0; 
+	i32 y = y0; 
+	for (i32 x = x0; x <= x1; x++)
+	{ 
+		const i32 i = steep ? y : x;
+		const i32 j = steep ? x : y;
+		framebuffer_set(framebuffer, i, j, color);
+
+		error2 += derror2; 
+		if (error2 > dx)
+		{ 
+			y += (y1>y0) ? 1 : -1; 
+			error2 -= dx*2;
+		} 
+	} 
+};
+static v4 persp(v4 v)
+{
+	return V4(v.x/v.w, v.y/v.w, v.z/v.w, v.w);
+};
+static v4 clip(m44 viewport, v4 vertex)
+{
+	return persp(m44_transform(viewport, vertex));	
+};
+static void draw_aabb(m44 camera, aabb_t aabb, framebuffer_t *framebuffer)
+{
+	const m44 viewport = m44_viewport(0,0,framebuffer->width,framebuffer->height);
+	const v3 color = V3(1.f, 0.f, 0.f);
+	{
+		const v4 min = clip(viewport, m44_transform(camera, V4(aabb.min.x, aabb.min.y, aabb.min.z, 1.f)));
+		const v4 max = clip(viewport, m44_transform(camera, V4(aabb.max.x, aabb.max.y, aabb.max.z, 1.f)));
+
+		draw_line(framebuffer, V2(min.x, min.y), V2(max.x, min.y), color);
+		draw_line(framebuffer, V2(max.x, min.y), V2(max.x, max.y), color);
+		draw_line(framebuffer, V2(max.x, max.y), V2(min.x, max.y), color);
+		draw_line(framebuffer, V2(min.x, max.y), V2(min.x, min.y), color);
+	}
+};
+static void draw_bvh_node(m44 camera, const bvh_t *bvh, framebuffer_t *framebuffer)
+{
+	draw_aabb(camera, bvh->aabb, framebuffer);
+	if (!bvh->leaf)
+	{
+		draw_bvh_node(camera, bvh->l, framebuffer);
+		draw_bvh_node(camera, bvh->r, framebuffer);
+	}
+};
+void draw_bvh(const camera_t *camera, const bvh_t *bvh, framebuffer_t *framebuffer)
+{
+	const f32 aspect = ((f32) framebuffer->width / (f32) framebuffer->height);
+	const m44 p = m44_perspective(
+		to_radians(camera->fov), 
+		aspect, 
+		0.1f, 10.f);
+	const m44 v = m44_lookAt(camera->position, camera->at, camera->up);
+	draw_bvh_node(m44_mul(p, v), bvh, framebuffer);
 };
