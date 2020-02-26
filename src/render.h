@@ -5,17 +5,9 @@
 #include "util.h"
 #include "geom.h"
 
+#include "framebuffer.h"
+
 #include "world.h"
-
-typedef struct
-{
-	i32 width;
-	i32 height;
-	v3 *pixels;
-} framebuffer_t;
-
-void framebuffer_alloc(framebuffer_t *framebuffer, i32 w, i32 h);
-void framebuffer_free(framebuffer_t *framebuffer);
 
 void render(
 	// Temporary allocation space

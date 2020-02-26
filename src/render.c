@@ -1,26 +1,5 @@
 #include "render.h"
 
-void framebuffer_alloc(framebuffer_t *framebuffer, i32 w, i32 h)
-{
-	framebuffer->width = w;
-	framebuffer->height = h;
-	framebuffer->pixels = malloc(w*h*sizeof(v3));
-	assert(framebuffer->pixels != NULL);
-	memset(framebuffer->pixels, 0, w*h*sizeof(v3));
-};
-void framebuffer_free(framebuffer_t *framebuffer)
-{
-	free(framebuffer->pixels);
-};
-static inline void framebuffer_set(framebuffer_t *framebuffer, i32 x, i32 y, v3 color)
-{
-	if ((x >= 0) && (x < framebuffer->width) &&
-		(y >= 0) && (y < framebuffer->height))
-	{
-		framebuffer->pixels[y*framebuffer->width + x] = color;
-	}
-};
-
 static inline f32 schlick(f32 cos, f32 ref_idx)
 {
 	const f32 r_0 = f32_square((1.f - ref_idx) / (1.f + ref_idx));
